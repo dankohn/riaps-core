@@ -12,6 +12,7 @@ namespace grouptest {
       auto uid = zuuid_new();
       string uidStr = zuuid_str(uid);
       zuuid_destroy(&uid);
+      spd::set_pattern("[%T] %v");
 
       m_publicGroupId = GroupId{GROUP_TYPE_GROUPA, "PublicGroup"};
       m_uniqueGroupId = GroupId{GROUP_TYPE_GROUPB, uidStr};
@@ -20,7 +21,7 @@ namespace grouptest {
     void GroupComp::OnClock(riaps::ports::PortBase *port) {
       if (!m_joinedToA) {
         _logger->info("Component joins to {}:{}", m_publicGroupId.groupTypeId, m_publicGroupId.groupName);
-        auto joined = JoinToGroup(m_publicGroupId);
+        auto joined = JoinGroup(m_publicGroupId);
         if (joined){
           m_joinedToA = true;
         }
@@ -33,7 +34,7 @@ namespace grouptest {
 
       if (!m_joinedToB) {
         _logger->info("Component joins to {}:{}", m_uniqueGroupId.groupTypeId, m_uniqueGroupId.groupName);
-        auto joined = JoinToGroup(m_uniqueGroupId);
+        auto joined = JoinGroup(m_uniqueGroupId);
         if (joined){
           m_joinedToB = true;
         }

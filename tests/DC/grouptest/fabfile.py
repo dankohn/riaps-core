@@ -1,6 +1,10 @@
 from fabric.api import env, run, parallel, local, runs_once, lcd, put
 
 env.hosts = ['192.168.1.120', '192.168.1.121', '192.168.1.122']
+env.password = 'riaps'
+env.user = 'riaps'
+
+
 
 files = [("./json-gen/Grouptest_app.json", "~/riaps_apps/Grouptest/Grouptest_app.json"),
          ("./build/armhf/bin/libgroupcomp.so", "~/riaps_apps/Grouptest/libgroupcomp.so")]
