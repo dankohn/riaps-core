@@ -16,18 +16,8 @@ app Leadermessage{
 	actor ActOne {
         {
             c1:CompOne();
+            c2:CompOne();
         }
     }
 
-    actor ActTwo {
-            {
-                c1:CompOne();
-            }
-        }
-
-    actor ActThree {
-            {
-                c1:CompOne();
-            }
-        }
 }

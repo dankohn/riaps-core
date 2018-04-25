@@ -5,7 +5,7 @@ namespace leaderwithone {
       
       CompOne::CompOne(_component_conf &config, riaps::Actor &actor) :
       CompOneBase(config, actor), m_joinedToA(false) {
-          _logger->set_pattern("[%n] %v");
+          _logger->set_pattern("[%T] [%n] %v");
       }
       
       void CompOne::OnClock(riaps::ports::PortBase *port) {

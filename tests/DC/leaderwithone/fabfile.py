@@ -3,9 +3,12 @@ import os
 import subprocess
 
 env.hosts = ['192.168.1.120', '192.168.1.121', '192.168.1.122']
+env.password = 'riaps'
+env.user = 'riaps'
 
-appName = "Groupmsgtest"
-files = ["libcompone.so", "libcomptwo.so", "libcompthree.so"]
+
+appName = "Leaderwithone"
+files = ["libcompone.so"]
 
 paths = [("./json-gen/%s_app.json" % appName, "~/riaps_apps/%s/%s_app.json" % (appName, appName))]
 

@@ -5,7 +5,7 @@ namespace groupmsgtest {
       
       CompTwo::CompTwo(_component_conf &config, riaps::Actor &actor) :
       CompTwoBase(config, actor), m_joinedToA(false), m_leftA(false) {
-          _logger->set_pattern("[%n] %v");
+          _logger->set_pattern("[%T] [%n] %v");
       }
       
       void CompTwo::OnClock(riaps::ports::PortBase *port) {

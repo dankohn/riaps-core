@@ -50,38 +50,8 @@
         "c1": {
           "type": "CompOne",
           "actuals": []
-        }
-      },
-      "devices": [],
-      "memory": -1,
-      "space": -1,
-      "exceptHandler": ""
-    },
-    "ActTwo": {
-      "internals": [],
-      "locals": [],
-      "criticals": [],
-      "formals": [],
-      "wires": [],
-      "instances": {
-        "c1": {
-          "type": "CompOne",
-          "actuals": []
-        }
-      },
-      "devices": [],
-      "memory": -1,
-      "space": -1,
-      "exceptHandler": ""
-    },
-    "ActThree": {
-      "internals": [],
-      "locals": [],
-      "criticals": [],
-      "formals": [],
-      "wires": [],
-      "instances": {
-        "c1": {
+        },
+        "c2": {
           "type": "CompOne",
           "actuals": []
         }

@@ -5,7 +5,7 @@ namespace leadermessage {
       
       CompOne::CompOne(_component_conf &config, riaps::Actor &actor) :
       CompOneBase(config, actor), m_joinedToA(false) {
-          _logger->set_pattern("[%n] %v");
+          _logger->set_pattern("[%T] [%n] %v");
       }
       
       void CompOne::OnClock(riaps::ports::PortBase *port) {
@@ -27,7 +27,7 @@ namespace leadermessage {
       }
 
       void CompOne::OnMessageToLeader(const riaps::groups::GroupId &groupId, capnp::FlatArrayMessageReader &message) {
-          _logger->info("Messaged arrived from component {}", message.getRoot<MessageType>().getMsg().cStr());
+          _logger->info("Messaged arrived from non-leader {}", message.getRoot<MessageType>().getMsg().cStr());
           capnp::MallocMessageBuilder builder;
           auto msg = builder.initRoot<MessageType>();
           msg.setMsg(GetCompUuid());
