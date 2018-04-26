@@ -1,0 +1,71 @@
+{
+  "name": "Ballotstart",
+  "groups": {
+    "groupA": {
+      "leader": true,
+      "consensus": true,
+      "groupMessages": [
+        "GroupMessage"
+      ],
+      "consensusMessages": []
+    }
+  },
+  "devices": {},
+  "components": {
+
+    "CompOne": {
+      "name": "CompOne",
+      "formals": [],
+      "libraries": [],
+      "files": [],
+      "devices": [],
+      "exceptHandler": "",
+      "ports": {
+        "reqs": {},
+        "anss": {},
+        "pubs": {},
+        "reps": {},
+        "inss": {},
+        "subs": {},
+        "clts": {},
+        "srvs": {},
+        "tims": {
+          "clock": {
+            "period": 3000
+          }
+        },
+        "qrys": {}
+      }
+    }
+
+  },
+  "actors": {
+    "ActOne": {
+      "internals": [],
+      "locals": [],
+      "criticals": [],
+      "formals": [],
+      "wires": [],
+      "instances": {
+        "c1": {
+          "type": "CompOne",
+          "actuals": []
+        },
+        "c2": {
+          "type": "CompOne",
+          "actuals": []
+        },
+        "c3": {
+          "type": "CompOne",
+          "actuals": []
+        }
+      },
+      "devices": [],
+      "memory": -1,
+      "space": -1,
+      "exceptHandler": ""
+    }
+  },
+  "messages": [],
+  "libraries": []
+}

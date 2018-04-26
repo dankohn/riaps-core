@@ -4,7 +4,8 @@ namespace leadermessage {
    namespace components {
       
       CompOne::CompOne(_component_conf &config, riaps::Actor &actor) :
-      CompOneBase(config, actor), m_joinedToA(false) {
+          CompOneBase(config, actor),
+          m_joinedToA(false){
           _logger->set_pattern("[%T] [%n] %v");
       }
       
@@ -20,8 +21,12 @@ namespace leadermessage {
              if (!IsLeader(groupIdA)) {
                  capnp::MallocMessageBuilder builder;
                  auto msg = builder.initRoot<MessageType>();
-                 msg.setMsg(fmt::format("{}", GetComponentName()));
-                 SendMessageToLeader(groupIdA, builder);
+                 msg.setMsg(fmt::format("{}", GetCompUuid()));
+                 if (SendMessageToLeader(groupIdA, builder)){
+                    _logger->info("Message sent to leader. Content: {}", msg.getMsg().cStr());
+                 } else {
+                     _logger->warn("Couldn't send message to leader.");
+                 }
              }
          }
       }
@@ -30,12 +35,16 @@ namespace leadermessage {
           _logger->info("Messaged arrived from non-leader {}", message.getRoot<MessageType>().getMsg().cStr());
           capnp::MallocMessageBuilder builder;
           auto msg = builder.initRoot<MessageType>();
-          msg.setMsg(GetCompUuid());
-
+          msg.setMsg(GetLeaderId(groupId));
+          _logger->error_if(!SendLeaderMessage(groupId, builder), "Couldn't send message to non leaders");
       }
 
       void CompOne::OnMessageFromLeader(const riaps::groups::GroupId &groupId, capnp::FlatArrayMessageReader &message) {
-          _logger->info("Messaged arrived from leader {}", message.getRoot<MessageType>().getMsg().cStr());
+          std::string content = message.getRoot<MessageType>().getMsg();
+          if (content == GetLeaderId(groupId))
+            _logger->info("Message returned from the leader, content: {}", content);
+          else
+            _logger->error("Non-leader message arrived in {}", __FUNCTION__);
       }
     
       
