@@ -8,7 +8,7 @@
 #include "common.h"
 #include "MessageType.capnp.h"
 
-namespace leadermessage {
+namespace ballotstart {
    namespace components {
       
       class CompOne : public CompOneBase {
@@ -26,7 +26,7 @@ namespace leadermessage {
          virtual ~CompOne() = default;
          private:
          bool m_joinedToA;
-         
+         uint32_t m_index;
          
       };
    }

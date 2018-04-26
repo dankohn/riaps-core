@@ -11,7 +11,7 @@
 #define PORT_TIMER_CLOCK "clock"
 
 
-namespace leadermessage {
+namespace ballotstart {
   namespace components {
 
     class CompOneBase : public riaps::ComponentBase {

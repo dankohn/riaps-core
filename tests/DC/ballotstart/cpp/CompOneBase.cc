@@ -3,7 +3,7 @@
 //
 #include <CompOneBase.h>
 
-namespace leadermessage {
+namespace ballotstart {
    namespace components {
       
       CompOneBase::CompOneBase(_component_conf &config, riaps::Actor &actor) : ComponentBase(config, actor) {

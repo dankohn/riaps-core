@@ -1,11 +1,12 @@
 #include <CompOne.h>
 
-namespace leadermessage {
+namespace ballotstart {
    namespace components {
       
       CompOne::CompOne(_component_conf &config, riaps::Actor &actor) :
           CompOneBase(config, actor),
-          m_joinedToA(false){
+          m_joinedToA(false),
+          m_index(0) {
           _logger->set_pattern("[%T] [%n] %v");
       }
       
@@ -21,7 +22,7 @@ namespace leadermessage {
              if (!IsLeader(groupIdA)) {
                  capnp::MallocMessageBuilder builder;
                  auto msg = builder.initRoot<MessageType>();
-                 msg.setMsg(fmt::format("{}", GetCompUuid()));
+                 msg.setValue(m_index++);
                  _logger->info("Propose sent with id: {}", SendPropose(groupIdA, builder));
              }
          }
@@ -29,6 +30,7 @@ namespace leadermessage {
 
       void CompOne::OnPropose(riaps::groups::GroupId &groupId, const std::string &proposeId,
                               capnp::FlatArrayMessageReader &message) {
+          _logger->info("Proposed value arrived from leader: {}, id:{}", message.getRoot<MessageType>().getValue(), proposeId);
 
       }
 
@@ -41,7 +43,7 @@ namespace leadermessage {
 }
 
 riaps::ComponentBase *create_component(_component_conf &config, riaps::Actor &actor) {
-   auto result = new leadermessage::components::CompOne(config, actor);
+   auto result = new ballotstart::components::CompOne(config, actor);
    return result;
 }
 
