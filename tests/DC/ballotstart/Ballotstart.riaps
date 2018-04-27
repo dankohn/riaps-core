@@ -4,7 +4,7 @@ struct MessageType {
 
 message GroupMessage:MessageType;
 
-app ProposeValue{
+app Ballotstart{
 	group groupA{	
 		uses leader, consensus
 	}
