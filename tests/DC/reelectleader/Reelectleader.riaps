@@ -1,0 +1,24 @@
+struct MessageType {
+	msg: String;
+}
+
+message GroupMessage:MessageType;
+
+app Groupmsgtest{
+	group groupA{	
+		uses leader
+	}
+	
+	component CompOne {
+		timer clock 3000
+	}
+
+	
+	actor ActOne {
+        {
+            c1:CompOne();
+            c2:CompOne();
+            c3:CompOne();
+        }
+    }
+}
