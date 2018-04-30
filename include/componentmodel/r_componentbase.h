@@ -195,11 +195,25 @@ namespace riaps {
                                     capnp::FlatArrayMessageReader& capnpreader,
                                     riaps::ports::PortBase* port);
 
+        /**
+         * Sends a message to the leader
+         * @param groupId
+         * @param message
+         * @return false if the message couldn't be sent or there is no leader in the group
+         */
         bool SendMessageToLeader(const riaps::groups::GroupId& groupId,
                                  capnp::MallocMessageBuilder& message);
 
+
+        /**
+         * Sends a message to the group members if teh component is a leader
+         * @param groupId
+         * @param message
+         * @return
+         */
         bool SendLeaderMessage(const riaps::groups::GroupId& groupId,
                                capnp::MallocMessageBuilder& message);
+
 
 
         

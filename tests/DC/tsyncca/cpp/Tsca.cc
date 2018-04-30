@@ -9,7 +9,7 @@ namespace tsyncca {
       TscaBase(config, actor), m_hasJoined(false) {
 
           _logger->set_level(spd::level::info);
-          _logger->set_pattern("[%H:%M:%S] %v");
+          _logger->set_pattern("[%H:%M:%S] [%n] %v");
 
           m_generator = std::mt19937(m_rd());
           m_distrPeriod = std::uniform_int_distribution<int>(2, 4);
@@ -36,10 +36,9 @@ namespace tsyncca {
                * The component has already joined, propose the action if the current component is not the leader
                **/
           else {
-              riaps::groups::GroupId gid{GROUP_TYPE_GROUPA, "ActionSync"};
 
               // If the component is not the leader, then proposeAction()
-              if (GetLeaderId(gid) != GetCompUuid()) {
+              if (GetLeaderId(groupIdA) != GetCompUuid()) {
                   /**
                    * Agreeing to run the given action in the 2nd second;
                    */
@@ -54,7 +53,7 @@ namespace tsyncca {
                    * Propose the action with id TOGGLE_ACTION_ID to the leader.
                    * If accepted, it will be executed "now" (t+2secs).
                    */
-                  std::string proposeId = ProposeAction(gid, ACTION_ID, now);
+                  std::string proposeId = ProposeAction(groupIdA, ACTION_ID, now);
               }
           }
       }

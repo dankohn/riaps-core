@@ -227,7 +227,7 @@ namespace riaps{
             if (GetLeaderId()!=GetParentComponentId()) return false;
             capnp::MallocMessageBuilder builder;
             auto intMessage = builder.initRoot<riaps::distrcoord::GroupInternals>();
-            auto grpMessage = intMessage.initGroupMessage();
+            auto grpMessage = intMessage.initLeaderMessage();
             grpMessage.setSourceComponentId(GetParentComponentId());
 
             zframe_t* header;
@@ -695,6 +695,21 @@ namespace riaps{
                         _parentComponent->OnMessageToLeader(m_groupId, capnpLeaderMsg);
 
                         return;
+                    } else if (internal.hasLeaderMessage()){
+                        // Message from the leader
+                        auto msgLeader = internal.getLeaderMessage();
+                        if (GetLeaderId() == GetParentComponent()->GetCompUuid()) return;
+
+
+                        zframe_t* leaderMsgFrame = zmsg_pop(msg);
+                        if (!leaderMsgFrame) return;
+                        auto leaderMsgPtr = std::shared_ptr<zframe_t>(leaderMsgFrame, [](zframe_t* z){zframe_destroy(&z);});
+                        capnp::FlatArrayMessageReader capnpLeaderMsg(nullptr);
+                        (*leaderMsgFrame) >> capnpLeaderMsg;
+
+                        _parentComponent->OnMessageFromLeader(m_groupId, capnpLeaderMsg);
+                        return;
+
                     } else if (internal.hasConsensus()) {
                         auto msgCons = internal.getConsensus();
                         // _logger->debug("DC message arrived from {}", msgDistCoord.getSourceComponentId().cStr());

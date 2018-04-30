@@ -26,6 +26,7 @@ CAPNP_DECLARE_SCHEMA(8a6b413c94c9717c);
 CAPNP_DECLARE_SCHEMA(fa67eeb730a5df5e);
 CAPNP_DECLARE_SCHEMA(f5b471e04470e3c4);
 CAPNP_DECLARE_SCHEMA(f8333cb31aa809fa);
+CAPNP_DECLARE_SCHEMA(a0db9864a01ffc74);
 CAPNP_DECLARE_SCHEMA(934fe15762c71e76);
 CAPNP_DECLARE_SCHEMA(880a4d64a0fb8286);
 CAPNP_DECLARE_SCHEMA(a9afe0029ed6bdf8);
@@ -143,6 +144,21 @@ struct MessageToLeader {
 
   struct _capnpPrivate {
     CAPNP_DECLARE_STRUCT_HEADER(f8333cb31aa809fa, 0, 1)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand = &schema->defaultBrand;
+    #endif  // !CAPNP_LITE
+  };
+};
+
+struct LeaderMessage {
+  LeaderMessage() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(a0db9864a01ffc74, 0, 1)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand = &schema->defaultBrand;
     #endif  // !CAPNP_LITE
@@ -297,6 +313,7 @@ struct GroupInternals {
     MESSAGE_TO_LEADER,
     CONSENSUS,
     GROUP_MESSAGE,
+    LEADER_MESSAGE,
   };
 
   struct _capnpPrivate {
@@ -835,6 +852,87 @@ private:
 class MessageToLeader::Pipeline {
 public:
   typedef MessageToLeader Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
+class LeaderMessage::Reader {
+public:
+  typedef LeaderMessage Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand);
+  }
+#endif  // !CAPNP_LITE
+
+  inline bool hasSourceComponentId() const;
+  inline  ::capnp::Text::Reader getSourceComponentId() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class LeaderMessage::Builder {
+public:
+  typedef LeaderMessage Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline bool hasSourceComponentId();
+  inline  ::capnp::Text::Builder getSourceComponentId();
+  inline void setSourceComponentId( ::capnp::Text::Reader value);
+  inline  ::capnp::Text::Builder initSourceComponentId(unsigned int size);
+  inline void adoptSourceComponentId(::capnp::Orphan< ::capnp::Text>&& value);
+  inline ::capnp::Orphan< ::capnp::Text> disownSourceComponentId();
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class LeaderMessage::Pipeline {
+public:
+  typedef LeaderMessage Pipelines;
 
   inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
   inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
@@ -1631,6 +1729,10 @@ public:
   inline bool hasGroupMessage() const;
   inline  ::riaps::distrcoord::GroupMessage::Reader getGroupMessage() const;
 
+  inline bool isLeaderMessage() const;
+  inline bool hasLeaderMessage() const;
+  inline  ::riaps::distrcoord::LeaderMessage::Reader getLeaderMessage() const;
+
 private:
   ::capnp::_::StructReader _reader;
   template <typename, ::capnp::Kind>
@@ -1699,6 +1801,14 @@ public:
   inline  ::riaps::distrcoord::GroupMessage::Builder initGroupMessage();
   inline void adoptGroupMessage(::capnp::Orphan< ::riaps::distrcoord::GroupMessage>&& value);
   inline ::capnp::Orphan< ::riaps::distrcoord::GroupMessage> disownGroupMessage();
+
+  inline bool isLeaderMessage();
+  inline bool hasLeaderMessage();
+  inline  ::riaps::distrcoord::LeaderMessage::Builder getLeaderMessage();
+  inline void setLeaderMessage( ::riaps::distrcoord::LeaderMessage::Reader value);
+  inline  ::riaps::distrcoord::LeaderMessage::Builder initLeaderMessage();
+  inline void adoptLeaderMessage(::capnp::Orphan< ::riaps::distrcoord::LeaderMessage>&& value);
+  inline ::capnp::Orphan< ::riaps::distrcoord::LeaderMessage> disownLeaderMessage();
 
 private:
   ::capnp::_::StructBuilder _builder;
@@ -2083,6 +2193,38 @@ inline void MessageToLeader::Builder::adoptSourceComponentId(
       _builder.getPointerField(0 * ::capnp::POINTERS), kj::mv(value));
 }
 inline ::capnp::Orphan< ::capnp::Text> MessageToLeader::Builder::disownSourceComponentId() {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::disown(
+      _builder.getPointerField(0 * ::capnp::POINTERS));
+}
+
+inline bool LeaderMessage::Reader::hasSourceComponentId() const {
+  return !_reader.getPointerField(0 * ::capnp::POINTERS).isNull();
+}
+inline bool LeaderMessage::Builder::hasSourceComponentId() {
+  return !_builder.getPointerField(0 * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::Text::Reader LeaderMessage::Reader::getSourceComponentId() const {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::get(
+      _reader.getPointerField(0 * ::capnp::POINTERS));
+}
+inline  ::capnp::Text::Builder LeaderMessage::Builder::getSourceComponentId() {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::get(
+      _builder.getPointerField(0 * ::capnp::POINTERS));
+}
+inline void LeaderMessage::Builder::setSourceComponentId( ::capnp::Text::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::Text>::set(
+      _builder.getPointerField(0 * ::capnp::POINTERS), value);
+}
+inline  ::capnp::Text::Builder LeaderMessage::Builder::initSourceComponentId(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::init(
+      _builder.getPointerField(0 * ::capnp::POINTERS), size);
+}
+inline void LeaderMessage::Builder::adoptSourceComponentId(
+    ::capnp::Orphan< ::capnp::Text>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::Text>::adopt(
+      _builder.getPointerField(0 * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::Text> LeaderMessage::Builder::disownSourceComponentId() {
   return ::capnp::_::PointerHelpers< ::capnp::Text>::disown(
       _builder.getPointerField(0 * ::capnp::POINTERS));
 }
@@ -2966,6 +3108,58 @@ inline ::capnp::Orphan< ::riaps::distrcoord::GroupMessage> GroupInternals::Build
   KJ_IREQUIRE(which() == GroupInternals::GROUP_MESSAGE,
               "Must check which() before get()ing a union member.");
   return ::capnp::_::PointerHelpers< ::riaps::distrcoord::GroupMessage>::disown(
+      _builder.getPointerField(0 * ::capnp::POINTERS));
+}
+
+inline bool GroupInternals::Reader::isLeaderMessage() const {
+  return which() == GroupInternals::LEADER_MESSAGE;
+}
+inline bool GroupInternals::Builder::isLeaderMessage() {
+  return which() == GroupInternals::LEADER_MESSAGE;
+}
+inline bool GroupInternals::Reader::hasLeaderMessage() const {
+  if (which() != GroupInternals::LEADER_MESSAGE) return false;
+  return !_reader.getPointerField(0 * ::capnp::POINTERS).isNull();
+}
+inline bool GroupInternals::Builder::hasLeaderMessage() {
+  if (which() != GroupInternals::LEADER_MESSAGE) return false;
+  return !_builder.getPointerField(0 * ::capnp::POINTERS).isNull();
+}
+inline  ::riaps::distrcoord::LeaderMessage::Reader GroupInternals::Reader::getLeaderMessage() const {
+  KJ_IREQUIRE(which() == GroupInternals::LEADER_MESSAGE,
+              "Must check which() before get()ing a union member.");
+  return ::capnp::_::PointerHelpers< ::riaps::distrcoord::LeaderMessage>::get(
+      _reader.getPointerField(0 * ::capnp::POINTERS));
+}
+inline  ::riaps::distrcoord::LeaderMessage::Builder GroupInternals::Builder::getLeaderMessage() {
+  KJ_IREQUIRE(which() == GroupInternals::LEADER_MESSAGE,
+              "Must check which() before get()ing a union member.");
+  return ::capnp::_::PointerHelpers< ::riaps::distrcoord::LeaderMessage>::get(
+      _builder.getPointerField(0 * ::capnp::POINTERS));
+}
+inline void GroupInternals::Builder::setLeaderMessage( ::riaps::distrcoord::LeaderMessage::Reader value) {
+  _builder.setDataField<GroupInternals::Which>(
+      0 * ::capnp::ELEMENTS, GroupInternals::LEADER_MESSAGE);
+  ::capnp::_::PointerHelpers< ::riaps::distrcoord::LeaderMessage>::set(
+      _builder.getPointerField(0 * ::capnp::POINTERS), value);
+}
+inline  ::riaps::distrcoord::LeaderMessage::Builder GroupInternals::Builder::initLeaderMessage() {
+  _builder.setDataField<GroupInternals::Which>(
+      0 * ::capnp::ELEMENTS, GroupInternals::LEADER_MESSAGE);
+  return ::capnp::_::PointerHelpers< ::riaps::distrcoord::LeaderMessage>::init(
+      _builder.getPointerField(0 * ::capnp::POINTERS));
+}
+inline void GroupInternals::Builder::adoptLeaderMessage(
+    ::capnp::Orphan< ::riaps::distrcoord::LeaderMessage>&& value) {
+  _builder.setDataField<GroupInternals::Which>(
+      0 * ::capnp::ELEMENTS, GroupInternals::LEADER_MESSAGE);
+  ::capnp::_::PointerHelpers< ::riaps::distrcoord::LeaderMessage>::adopt(
+      _builder.getPointerField(0 * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::riaps::distrcoord::LeaderMessage> GroupInternals::Builder::disownLeaderMessage() {
+  KJ_IREQUIRE(which() == GroupInternals::LEADER_MESSAGE,
+              "Must check which() before get()ing a union member.");
+  return ::capnp::_::PointerHelpers< ::riaps::distrcoord::LeaderMessage>::disown(
       _builder.getPointerField(0 * ::capnp::POINTERS));
 }
 
