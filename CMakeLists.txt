@@ -18,6 +18,11 @@ include_directories(include)
 include_directories(pybind11/include)
 include_directories(/usr/include/python3.5m/)
 
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach(dir ${dirs})
+    message(STATUS "dir='${dir}'")
+endforeach()
+
 # Process Cap'n Proto messages
 #add_custom_command(
 #        OUTPUT  "${CMAKE_SOURCE_DIR}/include/messaging/disco.capnp.c++"
