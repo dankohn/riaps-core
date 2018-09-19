@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(riaps_core VERSION 0.8.2)
-option(arch "amd64/armhf" "amd64")
-option(BUILD_TESTS  "Build tests" ON)
-set(CMAKE_SYSTEM_NAME Linux)
 
-set(riaps_prefix "/opt/riaps/" CACHE STRING "the riaps prefix")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-Wno-psabi")
 
@@ -12,28 +8,7 @@ set(PYBIND11_CPP_STANDARD -std=c++14)
 add_subdirectory(pybind11)
 
 
-#Set the platform
-if (${arch} STREQUAL "armhf")
- set(TOOLCHAIN_PREFIX /usr/bin/arm-linux-gnueabihf)
- set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
- set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++-7)
- set(CMAKE_FIND_ROOT_PATH /usr/${TOOLCHAIN_PREFIX})
- set (CMAKE_C_FLAGS "-std=c99")
-else()
- set(CMAKE_C_COMPILER gcc-7)
- set(CMAKE_CXX_COMPILER g++-7)
- set (CMAKE_C_FLAGS "-std=c99")
-endif()
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-set(CMAKE_INSTALL_PREFIX ${riaps_prefix}/${arch})
-
-set(DEPENDENCIES ${riaps_prefix})
-set (LIBALLPATH_INCLUDE ${DEPENDENCIES}/${arch}/include)
-set (LIBALLPATH_LIB ${DEPENDENCIES}/${arch}/lib)
-include_directories(${LIBALLPATH_INCLUDE})
-link_directories(${LIBALLPATH_LIB})
 
 # Debug binaries are to be copied into "./bin" directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_HOME_DIRECTORY}/bin)
