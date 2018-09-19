@@ -19,21 +19,21 @@ include_directories(pybind11/include)
 include_directories(/usr/include/python3.5m/)
 
 # Process Cap'n Proto messages
-add_custom_command(
-        OUTPUT  "${CMAKE_SOURCE_DIR}/include/messaging/disco.capnp.c++"
-        DEPENDS "${CMAKE_SOURCE_DIR}/include/messaging/capnp/disco.capnp"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/include/messaging/capnp"
-        COMMAND /opt/riaps/amd64/bin/capnp compile disco.capnp -oc++:../
-        COMMENT "=== Processing cap'n p disco files ==="
-)
-
-add_custom_command(
-        OUTPUT  "${CMAKE_SOURCE_DIR}/include/messaging/distcoord.capnp.c++"
-        DEPENDS "${CMAKE_SOURCE_DIR}/include/messaging/capnp/distcoord.capnp"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/include/messaging/capnp"
-        COMMAND /opt/riaps/amd64/bin/capnp compile distcoord.capnp -oc++:../
-        COMMENT "=== Processing cap'n p distcoord files ==="
-        )
+#add_custom_command(
+#        OUTPUT  "${CMAKE_SOURCE_DIR}/include/messaging/disco.capnp.c++"
+#        DEPENDS "${CMAKE_SOURCE_DIR}/include/messaging/capnp/disco.capnp"
+#        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/include/messaging/capnp"
+#        COMMAND /opt/riaps/amd64/bin/capnp compile disco.capnp -oc++:../
+#        COMMENT "=== Processing cap'n p disco files ==="
+#)
+#
+#add_custom_command(
+#        OUTPUT  "${CMAKE_SOURCE_DIR}/include/messaging/distcoord.capnp.c++"
+#        DEPENDS "${CMAKE_SOURCE_DIR}/include/messaging/capnp/distcoord.capnp"
+#        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/include/messaging/capnp"
+#        COMMAND /opt/riaps/amd64/bin/capnp compile distcoord.capnp -oc++:../
+#        COMMENT "=== Processing cap'n p distcoord files ==="
+#        )
 
 if (BUILD_TESTS)
     include(CTest)
