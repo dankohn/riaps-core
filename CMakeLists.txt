@@ -60,7 +60,7 @@ if (BUILD_TESTS)
     #add_subdirectory(tests/DC/leaderwiththree)
     # add_subdirectory(tests/TimedTest)
     # add_subdirectory(examples/EchoIO)
-    add_subdirectory(tests/DistributedEstimatorPybind)
+    # add_subdirectory(tests/DistributedEstimatorPybind)
 endif()
 
 
