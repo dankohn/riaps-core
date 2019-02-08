@@ -147,7 +147,7 @@ namespace riaps {
          * @return The component configuration.
          */
         const ComponentConf& component_config() const;
-        std::shared_ptr<spd::logger> component_logger();
+        std::shared_ptr<spd::logger>& component_logger();
 
         /**
          *

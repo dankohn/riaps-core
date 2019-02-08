@@ -14,7 +14,12 @@ namespace riaps{
     namespace ports{
         class SubscriberPortBase : public PortBase, public RecvPort{
         public:
-            SubscriberPortBase(const ComponentPortConfig* config, const ComponentBase* parent);
+            SubscriberPortBase(const ComponentPortConfig* config,
+                               bool has_security,
+                               const std::string& component_name,
+                               const std::string& application_name,
+                               const std::string& actor_name,
+                               std::shared_ptr<spd::logger>& logger);
 
             virtual const ComponentPortSub* GetConfig() const;
 

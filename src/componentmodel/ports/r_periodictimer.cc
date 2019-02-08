@@ -97,8 +97,13 @@ namespace riaps {
         }
 
 
-        PeriodicTimer::PeriodicTimer(const ComponentPortTim &config, const ComponentBase* parent_component)
-                : PortBase(PortTypes::Timer, (ComponentPortConfig*)&config, parent_component) {
+        PeriodicTimer::PeriodicTimer(const ComponentPortTim &config,
+                                     bool has_security,
+                                     const std::string& component_name,
+                                     const std::string& application_name,
+                                     const std::string& actor_name,
+                                     std::shared_ptr<spd::logger>& logger)
+                : PortBase(PortTypes::Timer, (ComponentPortConfig*)&config, has_security, component_name, application_name, actor_name, logger) {
             interval_ = config.period;
             timer_actor_ = zactor_new(ptimeractor, this);
         }

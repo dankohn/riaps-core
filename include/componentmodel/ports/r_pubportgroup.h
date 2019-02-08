@@ -19,7 +19,12 @@ namespace riaps{
     namespace ports{
         class GroupPublisherPort : public PublisherPortBase {
         public:
-            GroupPublisherPort(const GroupPortPub& config, const ComponentBase* parentComponent);
+            GroupPublisherPort(const GroupPortPub& config,
+                               bool has_security,
+                               const std::string& component_name,
+                               const std::string& application_name,
+                               const std::string& actor_name,
+                               std::shared_ptr<spd::logger>& logger);
             ::riaps::groups::GroupService GetGroupService();
             //bool SenderPort::Send(capnp::MallocMessageBuilder &message) const;
             ~GroupPublisherPort() = default;

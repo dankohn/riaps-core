@@ -17,7 +17,12 @@ namespace riaps {
         class RequestPort : public PortBase, public SenderPort, public RecvPort {
         public:
 
-            RequestPort(const ComponentPortReq &config, const ComponentBase *parent);
+            RequestPort(const ComponentPortReq &config,
+                        bool has_security,
+                        const std::string& component_name,
+                        const std::string& application_name,
+                        const std::string& actor_name,
+                        std::shared_ptr<spd::logger>& logger);
             virtual void Init();
 
             // Returns false, if the request port couldn't connect

@@ -329,7 +329,7 @@ namespace riaps{
         //zsock_destroy(&timerport);
     };
 
-    shared_ptr<spd::logger> ComponentBase::component_logger() {
+    shared_ptr<spd::logger>& ComponentBase::component_logger() {
         return component_logger_;
     }
 
@@ -550,7 +550,7 @@ namespace riaps{
     }
 
     const ports::PublisherPort* ComponentBase::InitPublisherPort(const ComponentPortPub& config) {
-        auto result = new ports::PublisherPort(config, this);
+        auto result = new ports::PublisherPort(config, has_security(), component_name(), actor()->actor_name(), actor()->application_name(), component_logger());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
@@ -574,7 +574,17 @@ namespace riaps{
 
 
     const ports::SubscriberPort* ComponentBase::InitSubscriberPort(const ComponentPortSub& config) {
-        std::unique_ptr<ports::SubscriberPort> newport(new ports::SubscriberPort(config, this));
+        unique_ptr<ports::SubscriberPort> newport(
+                new ports::SubscriberPort(
+                        config,
+                        has_security(),
+                        component_name(),
+                        actor()->actor_name(),
+                        actor()->application_name(),
+                        component_logger()
+                        )
+                    );
+
         auto result = newport.get();
         newport->Init();
         ports_[config.port_name] = std::move(newport);
@@ -582,14 +592,22 @@ namespace riaps{
     }
 
     const ports::ResponsePort* ComponentBase::InitResponsePort(const ComponentPortRep & config) {
-        auto result = new ports::ResponsePort(config, this);
+        auto result = new ports::ResponsePort(config, has_security(),
+                                              component_name(),
+                                              actor()->actor_name(),
+                                              actor()->application_name(),
+                                              component_logger());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
     }
 
     const ports::RequestPort*   ComponentBase::InitRequestPort(const ComponentPortReq& config){
-        std::unique_ptr<ports::RequestPort> newport(new ports::RequestPort(config, this));
+        std::unique_ptr<ports::RequestPort> newport(new ports::RequestPort(config, has_security(),
+                                                                           component_name(),
+                                                                           actor()->actor_name(),
+                                                                           actor()->application_name(),
+                                                                           component_logger()));
         auto result = newport.get();
         newport->Init();
         ports_[config.port_name] = std::move(newport);
@@ -597,14 +615,22 @@ namespace riaps{
     }
 
     const ports::AnswerPort* ComponentBase::InitAnswerPort(const ComponentPortAns & config) {
-        auto result = new ports::AnswerPort(config, this);
+        auto result = new ports::AnswerPort(config, has_security(),
+                                            component_name(),
+                                            actor()->actor_name(),
+                                            actor()->application_name(),
+                                            component_logger());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
     }
 
     const ports::QueryPort* ComponentBase::InitQueryPort(const ComponentPortQry & config) {
-        std::unique_ptr<ports::QueryPort> newport(new ports::QueryPort(config, this));
+        std::unique_ptr<ports::QueryPort> newport(new ports::QueryPort(config, has_security(),
+                                                                       component_name(),
+                                                                       actor()->actor_name(),
+                                                                       actor()->application_name(),
+                                                                       component_logger()));
         auto result = newport.get();
         newport->Init();
         ports_[config.port_name] = std::move(newport);
@@ -612,14 +638,22 @@ namespace riaps{
     }
 
     const ports::InsidePort* ComponentBase::InitInsidePort(const ComponentPortIns& config) {
-        auto result = new ports::InsidePort(config, riaps::ports::InsidePortMode::BIND, this);
+        auto result = new ports::InsidePort(config, riaps::ports::InsidePortMode::BIND, has_security(),
+                                            component_name(),
+                                            actor()->actor_name(),
+                                            actor()->application_name(),
+                                            component_logger());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
     }
 
     const ports::PeriodicTimer* ComponentBase::InitTimerPort(const ComponentPortTim& config) {
-        std::unique_ptr<ports::PeriodicTimer> newtimer(new ports::PeriodicTimer(config, this));
+        std::unique_ptr<ports::PeriodicTimer> newtimer(new ports::PeriodicTimer(config, has_security(),
+                                                                                component_name(),
+                                                                                actor()->actor_name(),
+                                                                                actor()->application_name(),
+                                                                                component_logger()));
         newtimer->Init();
         auto result = newtimer.get();
         ports_[config.port_name] = std::move(newtimer);
@@ -731,7 +765,7 @@ namespace riaps{
     bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
         if (groups_.find(groupId)!=groups_.end())
             return false;
-        auto new_group = make_unique<riaps::groups::Group>(groupId, this);
+        auto new_group = make_unique<riaps::groups::Group>(groupId, component_name(), actor()->application_name(), actor()->actor_name());
 
         if (new_group->InitGroup()) {
             groups_[groupId] = std::move(new_group);

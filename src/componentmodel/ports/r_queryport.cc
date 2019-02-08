@@ -11,10 +11,19 @@ using namespace riaps::discovery;
 namespace riaps {
     namespace ports {
 
-        QueryPort::QueryPort(const ComponentPortQry &config, const ComponentBase *component)
+        QueryPort::QueryPort(const ComponentPortQry &config,
+                             bool has_security,
+                             const std::string& component_name,
+                             const std::string& application_name,
+                             const std::string& actor_name,
+                             std::shared_ptr<spd::logger>& logger)
                 : PortBase(PortTypes::Query,
                            (ComponentPortConfig*)(&config),
-                           component),
+                           has_security,
+                           component_name,
+                           application_name,
+                           actor_name,
+                           logger),
                   m_capnpReader(capnp::FlatArrayMessageReader(nullptr)) {
             port_socket_ = zsock_new(ZMQ_DEALER);
             m_socketId = zuuid_new();
@@ -34,9 +43,9 @@ namespace riaps {
 
             auto results =
                     Disco::SubscribeToService(
-                            parent_component()->actor()->application_name(),
-                            parent_component()->component_config().component_name,
-                            parent_component()->actor()->actor_name(),
+                            application_name(),
+                            component_name(),
+                            actor_name(),
                             host,
                             riaps::discovery::Kind::QRY,
                             (current_config->is_local ? riaps::discovery::Scope::LOCAL

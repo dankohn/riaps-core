@@ -19,7 +19,12 @@ namespace riaps {
         class QueryPort : public PortBase {
         public:
 
-            QueryPort(const ComponentPortQry &config, const ComponentBase *component);
+            QueryPort(const ComponentPortQry &config,
+                      bool has_security,
+                      const std::string& component_name,
+                      const std::string& application_name,
+                      const std::string& actor_name,
+                      std::shared_ptr<spd::logger>& logger);
             virtual void Init();
 
             // Returns false, if the request port couldn't connect

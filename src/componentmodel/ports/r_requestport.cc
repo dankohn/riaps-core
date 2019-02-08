@@ -7,8 +7,19 @@ using namespace riaps::discovery;
 namespace riaps {
     namespace ports {
 
-        RequestPort::RequestPort(const ComponentPortReq &config, const ComponentBase *parent)
-                : PortBase(PortTypes::Request, (ComponentPortConfig*)(&config), parent),
+        RequestPort::RequestPort(const ComponentPortReq &config,
+                                 bool has_security,
+                                 const std::string& component_name,
+                                 const std::string& application_name,
+                                 const std::string& actor_name,
+                                 std::shared_ptr<spd::logger>& logger)
+                : PortBase(PortTypes::Request,
+                           (ComponentPortConfig*)(&config),
+                           has_security,
+                           component_name,
+                           application_name,
+                           actor_name,
+                           logger),
                   SenderPort(this),
                   RecvPort(this),
                   capnp_reader_(capnp::FlatArrayMessageReader(nullptr)) {
@@ -39,9 +50,9 @@ namespace riaps {
 
             auto results =
                     Disco::SubscribeToService(
-                            parent_component()->actor()->application_name(),
-                            parent_component()->component_config().component_name,
-                            parent_component()->actor()->actor_name(),
+                            this->application_name(),
+                            this->component_name(),
+                            this->actor_name(),
                             host,
                             riaps::discovery::Kind::REQ,
                             (current_config->is_local ? riaps::discovery::Scope::LOCAL

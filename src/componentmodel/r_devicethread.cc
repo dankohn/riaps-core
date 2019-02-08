@@ -44,7 +44,7 @@ namespace riaps{
                  it_insconf != _deviceConfig.component_ports.inss.end();
                  it_insconf++){
 
-                auto newPortPtr = new ports::InsidePort(*it_insconf, riaps::ports::InsidePortMode::CONNECT, NULL);
+                auto newPortPtr = new ports::InsidePort(*it_insconf, riaps::ports::InsidePortMode::CONNECT, false, "", "", "", _logger);
                 std::unique_ptr<ports::PortBase> newport(newPortPtr);
                 _insidePorts[it_insconf->port_name] = std::move(newport);
 

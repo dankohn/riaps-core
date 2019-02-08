@@ -88,6 +88,23 @@ if (BUILD_TESTS)
     add_subdirectory(examples/pybind/DistributedEstimatorPybind)
 endif()
 
+# distributed coordination
+#list (APPEND dc_HEADERS
+#        include/groups/r_group.h
+#        include/groups/r_grouplead.h)
+#
+#list (APPEND dc_DOURCE
+#        src/groups/r_group.cc
+#        src/groups/r_grouplead.cc)
+#
+## libriaps
+#add_library(riapsdc SHARED
+#        ${dc_SOURCE}
+#        ${dc_HEADERS}
+#        )
+#
+#target_link_libraries(riapsdc PRIVATE czmq zmq dl capnp kj)
+#install(TARGETS riapsdc DESTINATION lib)
 
 # libriaps sources
 list (APPEND riapslib_SOURCE

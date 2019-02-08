@@ -7,8 +7,19 @@ using namespace riaps::discovery;
 namespace riaps{
     namespace ports{
 
-        AnswerPort::AnswerPort(const ComponentPortAns &config, const ComponentBase *parent_component) :
-            PortBase(PortTypes::Answer, (ComponentPortConfig*)&config, parent_component),
+        AnswerPort::AnswerPort(const ComponentPortAns &config,
+                               bool has_security,
+                               const std::string& component_name,
+                               const std::string& application_name,
+                               const std::string& actor_name,
+                               std::shared_ptr<spd::logger>& logger) :
+            PortBase(PortTypes::Answer,
+                    (ComponentPortConfig*)&config,
+                    has_security,
+                    component_name,
+                    application_name,
+                    actor_name,
+                    logger),
             SenderPort(this)
         {
             port_socket_ = zsock_new(ZMQ_ROUTER);
@@ -16,11 +27,11 @@ namespace riaps{
 
 
             if (host_ == "") {
-                logger()->error("Response cannot be initiated. Cannot find  available network interface.");
+                this->logger()->error("Response cannot be initiated. Cannot find  available network interface.");
             }
 
             // The port is NOT local AND encrypted
-            if (!GetConfig()->is_local && has_security()) {
+            if (!GetConfig()->is_local && this->has_security()) {
 //                zactor_t *auth = zactor_new (zauth, NULL);
 //                auth_ = shared_ptr<zactor_t>(auth, [](zactor_t* z) {zactor_destroy(&z);});
 //                //zstr_sendx (auth, "VERBOSE", NULL);
@@ -33,7 +44,7 @@ namespace riaps{
                     zcert_apply (port_certificate_.get(), port_socket_);
                     zsock_set_curve_server (port_socket_, 1);
                 } else {
-                    logger()->error("Port certificate is null, cannot create port: {}", port_name());
+                    this->logger()->error("Port certificate is null, cannot create port: {}", port_name());
                     return;
                 }
             }
@@ -43,21 +54,21 @@ namespace riaps{
 
 
             if (port_ == -1) {
-                logger()->error("Couldn't bind response port.");
+                this->logger()->error("Couldn't bind response port.");
             }
 
-            logger()->info("Answerport is created on: {}:{}", host_, port_);
+            this->logger()->info("Answerport is created on: {}:{}", host_, port_);
 
             if (!Disco::RegisterService(
-                    parent_component->actor()->application_name(),
-                    parent_component->actor()->actor_name(),
+                    this->application_name(),
+                    this->actor_name(),
                     config.message_type,
                     host_,
                     port_,
                     riaps::discovery::Kind::ANS,
                     (config.is_local ? riaps::discovery::Scope::LOCAL : riaps::discovery::Scope::GLOBAL),
                     {})) {
-                logger()->error("Answerport couldn't be registered.");
+                this->logger()->error("Answerport couldn't be registered.");
             }
         }
 

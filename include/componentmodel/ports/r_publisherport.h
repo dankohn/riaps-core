@@ -25,7 +25,12 @@ namespace riaps {
             * @param config
             * @param parent_component
             */
-           PublisherPort(const ComponentPortPub& config, const ComponentBase* parent);
+           PublisherPort(const ComponentPortPub& config,
+                         bool has_security,
+                         const std::string& component_name,
+                         const std::string& application_name,
+                         const std::string& actor_name,
+                         std::shared_ptr<spd::logger>& logger);
            ~PublisherPort() = default;
        };
    }

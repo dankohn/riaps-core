@@ -40,15 +40,21 @@ namespace riaps{
             return "";
         }
 
-        Group::Group(const GroupId &group_id, ComponentBase* parentComponent) :
+        Group::Group(const GroupId &group_id, const std::string& component_name, const std::string& application_name, const std::string& actor_name) :
+                component_name_(component_name),
+                application_name_(application_name),
+                actor_name_(actor_name),
                 group_id_(group_id),
-                parent_component_(parentComponent),
                 group_pubport_(nullptr),
                 group_subport_(nullptr),
                 //_lastFrame(nullptr),
                 group_leader_(nullptr),
                 group_poller_(nullptr) {
-            logger_ = spd::get(parentComponent->component_config().component_name);
+            auto logger_name = fmt::format("{}:{}:{}", component_name, group_id.group_type_id, group_id.group_name);
+            logger_ = spd::get(logger_name);
+            if (logger_ == nullptr) {
+                logger_ = spd::stdout_color_mt(logger_name);
+            }
             ping_timeout_ = Timeout<std::chrono::milliseconds>(PING_BASE_PERIOD);
 
             random_generator_ = std::mt19937(random_device_());
@@ -73,7 +79,8 @@ namespace riaps{
 
             vector<GroupService> initializedServices;
 
-            group_pubport_ = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(internalPubConfig, parent_component_));
+            group_pubport_ = std::shared_ptr<ports::GroupPublisherPort>(
+                    new ports::GroupPublisherPort(internalPubConfig, false, component_name_, application_name_, actor_name_, logger_));
             initializedServices.push_back(group_pubport_->GetGroupService());
             group_ports_[group_pubport_->port_socket()] = group_pubport_;
 
@@ -83,7 +90,7 @@ namespace riaps{
             internalSubConfig.is_local     = false;
             internalSubConfig.port_name    = INTERNAL_SUB_NAME;
 
-            group_subport_ = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(internalSubConfig, parent_component_));
+            group_subport_ = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(internalSubConfig, false, component_name_, application_name_, actor_name_, logger_));
             group_ports_[group_subport_->port_socket()] = group_subport_;
 
             // Initialize the zpoller and add the group sub port
@@ -91,7 +98,7 @@ namespace riaps{
 
             // Initialize user defined publishers
             for(auto& portDeclaration : group_type_conf_.group_type_ports.pubs){
-                auto newPubPort = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(portDeclaration, parent_component_));
+                auto newPubPort = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(portDeclaration, false, component_name_, application_name_, actor_name_, logger_));
                 initializedServices.push_back(newPubPort->GetGroupService());
                 group_ports_[newPubPort->port_socket()]=std::move(newPubPort);
 
@@ -99,7 +106,7 @@ namespace riaps{
 
             // Initialize user defined subscribers
             for(auto& portDeclaration : group_type_conf_.group_type_ports.subs){
-                auto newSubPort = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(portDeclaration, parent_component_));
+                auto newSubPort = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(portDeclaration, false, component_name_, application_name_, actor_name_, logger_));
                 zpoller_add(group_poller_, const_cast<zsock_t*>(newSubPort->port_socket()));
                 group_ports_[newSubPort->port_socket()] = std::move(newSubPort);
 

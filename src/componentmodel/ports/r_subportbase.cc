@@ -4,8 +4,19 @@ using namespace std;
 
 namespace riaps {
     namespace ports{
-        SubscriberPortBase::SubscriberPortBase(const ComponentPortConfig *config, const ComponentBase* parent)
-                : PortBase(PortTypes::Subscriber, config, parent), RecvPort(this) {
+        SubscriberPortBase::SubscriberPortBase(const ComponentPortConfig *config, bool has_security,
+                                               const std::string& component_name,
+                                               const std::string& application_name,
+                                               const std::string& actor_name,
+                                               std::shared_ptr<spd::logger>& logger)
+                : PortBase(PortTypes::Subscriber,
+                           (ComponentPortConfig*)(&config),
+                           has_security,
+                           component_name,
+                           application_name,
+                           actor_name,
+                           logger),
+                           RecvPort(this) {
            InitSocket();
         }
 

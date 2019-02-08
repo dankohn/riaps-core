@@ -13,7 +13,12 @@ namespace riaps{
     namespace ports{
         class PublisherPortBase : public PortBase, public SenderPort {
         public:
-            PublisherPortBase(const ComponentPortConfig* config, const ComponentBase* parent);
+            PublisherPortBase(const ComponentPortConfig* config,
+                              bool has_security,
+                              const std::string& component_name,
+                              const std::string& application_name,
+                              const std::string& actor_name,
+                              std::shared_ptr<spd::logger>& logger);
             std::string endpoint();
 
             virtual const ComponentPortPub* GetConfig() const;

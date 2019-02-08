@@ -15,18 +15,26 @@ namespace riaps {
 
         PortBase::PortBase(PortTypes port_type,
                            const ComponentPortConfig* config,
-                           const ComponentBase* parent_component)
-                : parent_component_(parent_component) {
+                           bool has_security,
+                           const std::string& component_name,
+                           const std::string& application_name,
+                           const std::string& actor_name,
+                           std::shared_ptr<spd::logger>& logger)
+                           : port_type_(port_type),
+                             has_security_(has_security),
+                             component_name_(component_name),
+                             application_name_(application_name),
+                             actor_name_(actor_name),
+                             logger_(logger) {
 
-            port_type_        = port_type;
             config_           = config;
             port_socket_      = nullptr;
             port_certificate_ = nullptr;
 
-            if (has_security()) {
+            if (this->has_security()) {
                 zcert_t* curve_key = riaps::framework::Security::curve_key();
                 if (curve_key == nullptr)
-                    logger()->error("Cannot open CURVE key: {}", riaps::framework::Security::curve_key_path());
+                    this->logger()->error("Cannot open CURVE key: {}", riaps::framework::Security::curve_key_path());
                 else {
                     port_certificate_ = shared_ptr<zcert_t>(curve_key, [](zcert_t* c){
                         zcert_destroy(&c);
@@ -36,32 +44,24 @@ namespace riaps {
         }
 
         bool PortBase::has_security() const {
-            if (parent_component_ == nullptr) {
-                logger()->warn("Parent component is null for {}", port_name());
-                return false;
-            }
-            return parent_component_->has_security();
+            return has_security_;
         }
 
         shared_ptr<spd::logger> PortBase::logger() const {
-            // InsidePorts have no parent components
-            if (parent_component_ == nullptr) {
-                string logger_prefix = port_type_ == PortTypes::Inside?"InsidePort":"NullParent";
-                string logger_name = fmt::format("{}::{}", logger_prefix, config_->port_name);
-                if (spd::get(logger_name) == nullptr) {
-                    return spd::stdout_color_mt(logger_name);
-                }
-                return spd::get(logger_name);
-            }
-            return const_cast<ComponentBase*>(parent_component_)->component_logger();
+//            // InsidePorts have no parent components
+//            if (component_name_ == "") {
+//                string logger_prefix = port_type_ == PortTypes::Inside?"InsidePort":"NullParent";
+//                string logger_name = fmt::format("{}::{}", logger_prefix, config_->port_name);
+//                if (spd::get(logger_name) == nullptr) {
+//                    return spd::stdout_color_mt(logger_name);
+//                }
+//                return spd::get(logger_name);
+//            }
+           return this->logger_;
         }
 
         const zsock_t *PortBase::port_socket() const {
             return port_socket_;
-        }
-
-        const ComponentBase* PortBase::parent_component() {
-            return parent_component_;
         }
 
         const ComponentPortConfig* PortBase::config() const {

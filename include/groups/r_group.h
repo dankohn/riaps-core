@@ -26,9 +26,6 @@
 #include <chrono>
 #include <set>
 
-
-
-
 namespace spd = spdlog;
 
 namespace riaps {
@@ -92,7 +89,7 @@ namespace riaps {
              * Initializes a group, by the given groupId
              * @param group_id Must have valid configuration entry with the matching id.
              */
-            Group(const GroupId& group_id, ComponentBase* parentComponent);
+            Group(const GroupId& group_id, const std::string& component_name, const std::string& application_name, const std::string& actor_name);
 
             /**
              * Creates the communication ports and registers the group in the discovery service.
@@ -140,6 +137,10 @@ namespace riaps {
 
             ~Group();
         private:
+            const std::string component_name_;
+            const std::string application_name_;
+            const std::string actor_name_;
+
             /**
              * Delete records from the _knownNodes cache, it the Timer is exceeded
              * @return Number of deleted records.

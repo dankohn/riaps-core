@@ -7,10 +7,19 @@
 namespace riaps{
     namespace ports{
 
-        InsidePort::InsidePort(const ComponentPortIns &config, InsidePortMode mode, const ComponentBase *parent_component)
+        InsidePort::InsidePort(const ComponentPortIns &config, InsidePortMode mode,
+                               bool has_security,
+                               const std::string& component_name,
+                               const std::string& application_name,
+                               const std::string& actor_name,
+                               std::shared_ptr<spd::logger>& logger)
             : PortBase(PortTypes::Inside,
                        (ComponentPortConfig*)&config,
-                       parent_component),
+                       has_security,
+                       component_name,
+                       application_name,
+                       actor_name,
+                       logger),
               SenderPort(this)
         {
             endpoint_ = fmt::format("inproc://inside_{}", config.port_name);

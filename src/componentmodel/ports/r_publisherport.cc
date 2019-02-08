@@ -7,21 +7,26 @@ using namespace riaps::discovery;
 namespace riaps{
     namespace ports {
 
-        PublisherPort::PublisherPort(const ComponentPortPub &config, const ComponentBase* parent)
-            : PublisherPortBase((ComponentPortConfig*)&config, parent)
+        PublisherPort::PublisherPort(const ComponentPortPub &config,
+            bool has_security,
+            const std::string& component_name,
+            const std::string& application_name,
+            const std::string& actor_name,
+            std::shared_ptr<spd::logger>& logger)
+            : PublisherPortBase((ComponentPortConfig*)&config, has_security, component_name, application_name, actor_name, logger)
 
         {
             InitSocket();
             if (!Disco::RegisterService(
-                    parent_component()->actor()->application_name(),
-                    parent_component()->actor()->actor_name(),
+                    this->application_name(),
+                    this->actor_name(),
                     config.message_type,
                     host_,
                     port_,
                     riaps::discovery::Kind::PUB,
                     (config.is_local ? riaps::discovery::Scope::LOCAL : riaps::discovery::Scope::GLOBAL),
                     {})) {
-                logger()->error("Publisher port couldn't be registered.");
+                this->logger()->error("Publisher port couldn't be registered.");
             }
         }
     }

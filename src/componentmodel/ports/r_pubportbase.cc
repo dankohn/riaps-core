@@ -11,8 +11,19 @@ using namespace std;
 namespace riaps{
     namespace ports{
 
-        PublisherPortBase::PublisherPortBase(const ComponentPortConfig* config, const ComponentBase* parent)
-                : PortBase(PortTypes::Publisher, config, parent),
+        PublisherPortBase::PublisherPortBase(const ComponentPortConfig* config,
+                                             bool has_security,
+                                             const std::string& component_name,
+                                             const std::string& application_name,
+                                             const std::string& actor_name,
+                                             std::shared_ptr<spd::logger>& logger)
+                : PortBase(PortTypes::Publisher,
+                           config,
+                           has_security,
+                           component_name,
+                           application_name,
+                           actor_name,
+                           logger),
                   SenderPort(this) {
 
         }

@@ -22,7 +22,12 @@ namespace riaps {
 
         class AnswerPort : public PortBase, public SenderPort {
         public:
-            AnswerPort(const ComponentPortAns &config, const ComponentBase* parent);
+            AnswerPort(const ComponentPortAns &config,
+                       bool has_security,
+                       const std::string& component_name,
+                       const std::string& application_name,
+                       const std::string& actor_name,
+                       std::shared_ptr<spd::logger>& logger);
             virtual const ComponentPortAns* GetConfig() const;
 
             PortError SendAnswer(capnp::MallocMessageBuilder& builder, std::shared_ptr<MessageParams> params);
