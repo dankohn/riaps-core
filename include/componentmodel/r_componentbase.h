@@ -15,7 +15,7 @@
 #include <componentmodel/r_configuration.h>
 #include <componentmodel/r_oneshottimer.h>
 #include <componentmodel/r_payload.h>
-#include <groups/r_group.h>
+//#include <groups/r_group.h>
 #include <messaging/disco.capnp.h>
 
 #include <msgpack.hpp>
@@ -52,10 +52,10 @@ namespace riaps {
 
     //class PyActor;
 
-    namespace groups{
-        class Group;
-        struct GroupId;
-    }
+//    namespace groups{
+//        class Group;
+//        struct GroupId;
+//    }
 
 
 
@@ -67,7 +67,7 @@ namespace riaps {
     void component_actor(zsock_t* pipe, void* args);
 
     class ComponentBase {
-        friend riaps::groups::Group;
+        //friend riaps::groups::Group;
     public:
         ///////////////////// PYTHON PART ///////////////////////
         ComponentBase(const std::string &application_name, const std::string &actor_name);
@@ -126,20 +126,20 @@ namespace riaps {
                                std::string&                 request_id);
 
 
-
-        bool SendGroupMessage(const riaps::groups::GroupId& groupId,
-                              capnp::MallocMessageBuilder& message,
-                              const std::string& portName="");
-
-        bool SendGroupMessage(const riaps::groups::GroupId&& groupId,
-                              capnp::MallocMessageBuilder& message,
-                              const std::string& portName="");
-
-
+        //RIAPSDC
+//        bool SendGroupMessage(const riaps::groups::GroupId& groupId,
+//                              capnp::MallocMessageBuilder& message,
+//                              const std::string& portName="");
+//
+//        bool SendGroupMessage(const riaps::groups::GroupId&& groupId,
+//                              capnp::MallocMessageBuilder& message,
+//                              const std::string& portName="");
 
 
 
-        void UpdateGroup(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
+
+        //RIAPSDC
+        //void UpdateGroup(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
 
 
         /**
@@ -185,43 +185,44 @@ namespace riaps {
          * @param capnpreader The received message in capnp buffer
          * @param port The port structure where the message was read form.
          */
-        virtual void OnGroupMessage(const riaps::groups::GroupId& groupId,
-                                    capnp::FlatArrayMessageReader& capnpreader,
-                                    riaps::ports::PortBase* port);
-
-        bool SendMessageToLeader(const riaps::groups::GroupId& groupId,
-                                 capnp::MallocMessageBuilder& message);
-
-        bool SendLeaderMessage(const riaps::groups::GroupId& groupId,
-                               capnp::MallocMessageBuilder& message);
+// RIAPSDC
+        //        virtual void OnGroupMessage(const riaps::groups::GroupId& groupId,
+//                                    capnp::FlatArrayMessageReader& capnpreader,
+//                                    riaps::ports::PortBase* port);
+//
+//        bool SendMessageToLeader(const riaps::groups::GroupId& groupId,
+//                                 capnp::MallocMessageBuilder& message);
+//
+//        bool SendLeaderMessage(const riaps::groups::GroupId& groupId,
+//                               capnp::MallocMessageBuilder& message);
 
 
         
-
+// RIAPSDC
         /**
          * Gives a snapshot about the members of a group, considering a timeout.
          * @param groupId The group id where the members are counted.
          * @param timeout A member is counted if heartbeat was recevied from it in the last "timeout" msec
          * @return
          */
-        uint16_t GetGroupMemberCount(const riaps::groups::GroupId &groupId,
-                                     int64_t timeout = 1000 * 15 /*15 sec in msec*/);
-
-        std::string GetLeaderId(const riaps::groups::GroupId& groupId);
-
-        /**
-         * Does a valid leader available in the group?
-         * @param groupId
-         * @return
-         */
-        bool IsLeaderAvailable(const riaps::groups::GroupId& groupId);
-
-        /**
-         * Is the current component the leader?
-         * @param groupId
-         * @return
-         */
-        bool IsLeader(const riaps::groups::GroupId& groupId);
+//        uint16_t GetGroupMemberCount(const riaps::groups::GroupId &groupId,
+//                                     int64_t timeout = 1000 * 15 /*15 sec in msec*/);
+//
+//        std::string GetLeaderId(const riaps::groups::GroupId& groupId);
+//
+//        /**
+//         * Does a valid leader available in the group?
+//         * @param groupId
+//         * @return
+//         */
+//        bool IsLeaderAvailable(const riaps::groups::GroupId& groupId);
+//
+//        /**
+//         * Is the current component the leader?
+//         * @param groupId
+//         * @return
+//         */
+//        bool IsLeader(const riaps::groups::GroupId& groupId);
 
         /**
          * Search publisher port with portName.
@@ -313,38 +314,40 @@ namespace riaps {
 
         timespec WaitUntil(const timespec& targetTimepoint);
 
+        // RIAPSDC
         /**
          *
          * @param groupType
          * @param groupName
          */
-        bool JoinGroup(riaps::groups::GroupId&& groupId);
-        bool JoinGroup(riaps::groups::GroupId&  groupId);
+//        bool JoinGroup(riaps::groups::GroupId&& groupId);
+//        bool JoinGroup(riaps::groups::GroupId&  groupId);
 
         /**
          *
          * @param groupType
          * @param groupName
          */
-        bool LeaveGroup(riaps::groups::GroupId&& groupId);
-        bool LeaveGroup(riaps::groups::GroupId&  groupId);
-
-        std::vector<riaps::groups::GroupId> GetGroupMemberships();
-        std::vector<riaps::groups::GroupId> GetGroupMembershipsByType(const std::string& groupType);
-        bool IsMemberOf(riaps::groups::GroupId& groupId);
-
-        virtual void OnPropose (riaps::groups::GroupId& groupId, const std::string& proposeId, capnp::FlatArrayMessageReader& message);
-        virtual void OnActionPropose (riaps::groups::GroupId& groupId,
-                                      const std::string& proposeId,
-                                      const std::string& actionId,
-                                      const timespec& timePoint);
-
-        virtual void OnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
-        virtual void OnMessageFromLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
-
-        virtual void OnAnnounce(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accepted);
-        std::string SendPropose(const riaps::groups::GroupId& groupId, capnp::MallocMessageBuilder& message);
-        bool SendVote(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accept);
+         // RIAPSDC
+//        bool LeaveGroup(riaps::groups::GroupId&& groupId);
+//        bool LeaveGroup(riaps::groups::GroupId&  groupId);
+//
+//        std::vector<riaps::groups::GroupId> GetGroupMemberships();
+//        std::vector<riaps::groups::GroupId> GetGroupMembershipsByType(const std::string& groupType);
+//        bool IsMemberOf(riaps::groups::GroupId& groupId);
+//
+//        virtual void OnPropose (riaps::groups::GroupId& groupId, const std::string& proposeId, capnp::FlatArrayMessageReader& message);
+//        virtual void OnActionPropose (riaps::groups::GroupId& groupId,
+//                                      const std::string& proposeId,
+//                                      const std::string& actionId,
+//                                      const timespec& timePoint);
+//
+//        virtual void OnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
+//        virtual void OnMessageFromLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
+//
+//        virtual void OnAnnounce(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accepted);
+//        std::string SendPropose(const riaps::groups::GroupId& groupId, capnp::MallocMessageBuilder& message);
+//        bool SendVote(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accept);
 
         /**
          * Proposes an action to the leader.
@@ -354,10 +357,11 @@ namespace riaps {
          * @param message  Additional custom message, which necesseary by the other nodes for the decision.
          * @return The generated proposeId. The leader announces the results by this id.
          */
-        std::string ProposeAction(const riaps::groups::GroupId& groupId  ,
-                                  const std::string&            actionId ,
-                                  const timespec&               absTime
-        );
+         // RIAPSDC
+//        std::string ProposeAction(const riaps::groups::GroupId& groupId  ,
+//                                  const std::string&            actionId ,
+//                                  const timespec&               absTime
+//        );
 
         uint64_t ScheduleAbsTimer(const timespec &t, uint64_t wakeupOffset = 0 /*nanosec*/);
 
@@ -399,12 +403,7 @@ namespace riaps {
         const ports::PeriodicTimer*  InitTimerPort      (const ComponentPortTim&);
         const ports::InsidePort*     InitInsidePort     (const ComponentPortIns&);
 
-        /**
-         * Is the current component the leader?
-         * @param groupId
-         * @return
-         */
-        bool IsLeader(const riaps::groups::Group* groupId);
+
 
 
 
@@ -421,10 +420,7 @@ namespace riaps {
         // All the component ports
         std::unordered_map<std::string, std::unique_ptr<ports::PortBase>> ports_;
 
-        std::map<riaps::groups::GroupId,
-                 std::unique_ptr<riaps::groups::Group>> groups_;
 
-        riaps::groups::Group* getGroupById(const riaps::groups::GroupId &groupId);
 
         uint64_t timer_counter_;
 
@@ -445,6 +441,22 @@ namespace riaps {
         zactor_t* component_zactor_;
 
         bool has_security_;
+
+        // RIAPSDC
+        /**
+         * Is the current component the leader?
+         * @param groupId
+         * @return
+         */
+        //bool IsLeader(const riaps::groups::Group* groupId);
+
+//        // RIAPSDC
+//        std::map<riaps::groups::GroupId,
+//                 std::unique_ptr<riaps::groups::Group>> groups_;
+
+        // RIAPSDC
+        //riaps::groups::Group* getGroupById(const riaps::groups::GroupId &groupId);
+
     };
 
     template<class T>

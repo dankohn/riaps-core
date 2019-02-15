@@ -5,6 +5,7 @@
 #ifndef RIAPS_CORE_R_GROUPLEAD_H
 #define RIAPS_CORE_R_GROUPLEAD_H
 
+#include <utils/r_utils.h>
 #include <messaging/distcoord.capnp.h>
 #include <groups/r_group.h>
 #include <spdlog_setup/conf.h>
@@ -88,10 +89,10 @@ namespace riaps{
              */
             int64_t GenerateElectionTimeo();
 
-            std::random_device m_rd;
-            std::mt19937 m_generator;
-            std::uniform_int_distribution<int> m_distrElection;
-            const std::string GetComponentId() const;
+            std::random_device rd_;
+            std::mt19937 generator_;
+            std::uniform_int_distribution<int> distr_election_;
+            const std::string component_id() const;
 
             NodeState m_currentState;
 
@@ -106,7 +107,7 @@ namespace riaps{
             // Votes from, when
             std::unordered_map<std::string, steady_clock::time_point> m_votes;
 
-            riaps::groups::Group* m_group;
+            riaps::groups::Group* group_;
 
 
             // Send functions

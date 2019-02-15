@@ -85,10 +85,10 @@ if (BUILD_TESTS)
     # add_subdirectory(tests/TimedTest)
     # add_subdirectory(examples/EchoIO)
     # add_subdirectory(examples/pybind/WeatherMonitor)
-    add_subdirectory(examples/pybind/DistributedEstimatorPybind)
+    # add_subdirectory(examples/pybind/DistributedEstimatorPybind)
 endif()
 
-# distributed coordination
+## distributed coordination
 #list (APPEND dc_HEADERS
 #        include/groups/r_group.h
 #        include/groups/r_grouplead.h)
@@ -97,7 +97,7 @@ endif()
 #        src/groups/r_group.cc
 #        src/groups/r_grouplead.cc)
 #
-## libriaps
+## libriapsdc
 #add_library(riapsdc SHARED
 #        ${dc_SOURCE}
 #        ${dc_HEADERS}
@@ -105,6 +105,7 @@ endif()
 #
 #target_link_libraries(riapsdc PRIVATE czmq zmq dl capnp kj)
 #install(TARGETS riapsdc DESTINATION lib)
+#set_target_properties(riapsdc PROPERTIES LINKER_LANGUAGE CXX)
 
 # libriaps sources
 list (APPEND riapslib_SOURCE
@@ -137,9 +138,10 @@ list (APPEND riapslib_SOURCE
         src/framework/rfw_configuration.cc
         src/framework/rfw_network_interfaces.cc
         src/framework/rfw_security.cc
-        src/groups/r_group.cc
-        src/groups/r_grouplead.cc
         src/utils/r_utils.cc
+        src/groups/r_grouplead.cc
+        src/groups/r_group.cc
+        src/dc/dc.cc
         )
 
 # libriaps headers
@@ -172,14 +174,15 @@ list (APPEND riapslib_HEADERS
         include/componentmodel/r_parameter.h
         include/componentmodel/r_riapsmessage.h
         include/const/r_const.h
-        include/groups/r_group.h
-        include/groups/r_grouplead.h
         include/messaging/disco.capnp.h
         include/messaging/distcoord.capnp.h
         include/utils/r_expirable.h
         include/utils/r_expirablelist.h
         include/utils/r_timeout.h
         include/framework/rfw_security.h
+        include/groups/r_group.h
+        include/groups/r_grouplead.h
+        include/dc/dc.h
         )
 
 # libriaps
@@ -190,6 +193,8 @@ add_library(riaps SHARED
 
 target_link_libraries(riaps PRIVATE czmq zmq dl capnp kj opendht gnutls stdc++fs)
 install(TARGETS riaps DESTINATION lib)
+
+
 
 # rdiscoveryd source
 list(APPEND RDISCOVERYD_SOURCE
@@ -231,6 +236,9 @@ add_executable(rdiscoveryd
 target_link_libraries(rdiscoveryd czmq zmq opendht gnutls riaps capnp nettle hogweed gmp pthread kj lmdb stdc++fs)
 
 install(TARGETS rdiscoveryd DESTINATION bin)
+
+#add_library(riapsdddd SHARED src/dc/dc.cc include/dc/dc.h)
+#target_link_libraries(riapsdddd czmq zmq)
 
 SET(MAJOR_VERSION "1")
 SET(MINOR_VERSION "1")

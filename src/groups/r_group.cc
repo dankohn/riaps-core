@@ -1,7 +1,7 @@
 //
 // Created by istvan on 10/3/17.
 //
-
+#include <componentmodel/r_discoverdapi.h>
 #include <groups/r_group.h>
 #include <messaging/distcoord.capnp.h>
 #include <capnp/common.h>
@@ -40,7 +40,20 @@ namespace riaps{
             return "";
         }
 
-        Group::Group(const GroupId &group_id, const std::string& component_name, const std::string& application_name, const std::string& actor_name) :
+        std::shared_ptr<spd::logger> Group::logger() {
+            return logger_;
+        }
+
+        const std::string& Group::component_name() {
+            return component_name_;
+        }
+
+        Group::Group(const GroupId &group_id,
+                     const std::string& component_id,
+                     const std::string& component_name,
+                     const std::string& application_name,
+                     const std::string& actor_name) :
+                component_id_(component_id),
                 component_name_(component_name),
                 application_name_(application_name),
                 actor_name_(actor_name),
@@ -64,7 +77,8 @@ namespace riaps{
         bool Group::InitGroup() {
 
             // If the groupid doesn't exist, just skip the initialization and return false
-            auto groupTypeConf = parent_component_->actor()->GetGroupType(group_id_.group_type_id);
+            // RIAPSDC
+            GroupTypeConf* groupTypeConf = nullptr;//parent_component_->actor()->GetGroupType(group_id_.group_type_id);
             if (groupTypeConf == nullptr)
                 return false;
 
@@ -113,8 +127,8 @@ namespace riaps{
             }
 
             bool hasJoined = Disco::JoinGroup(
-                    parent_component_->actor()->application_name(),
-                    parent_component_->ComponentUuid(),
+                    application_name_,
+                    component_id(),
                     group_id_,
                     initializedServices);
 
@@ -133,8 +147,6 @@ namespace riaps{
         }
 
 
-
-
         bool Group::SendInternalMessage(capnp::MallocMessageBuilder &message) {
             return SendMessage(message, INTERNAL_PUB_NAME);
         }
@@ -148,7 +160,7 @@ namespace riaps{
             capnp::MallocMessageBuilder builder;
             auto msgGroupInternals = builder.initRoot<riaps::distrcoord::GroupInternals>();
             auto msgHeader = msgGroupInternals.initMessageToLeader();
-            msgHeader.setSourceComponentId(parent_component()->ComponentUuid());
+            msgHeader.setSourceComponentId(component_id());
 
             zframe_t* header;
             header << builder;
@@ -177,7 +189,7 @@ namespace riaps{
 
             auto msgPropLeader = msgCons.initProposeToLeader();
             msgPropLeader.setProposeId(proposeId);
-            msgCons.setSourceComponentId(parent_component_id());
+            msgCons.setSourceComponentId(component_id());
 
             zframe_t* header;
             header << builder;
@@ -192,7 +204,7 @@ namespace riaps{
             else
                 logger_->debug("ProposeValueToLeader() proposeId: {}, leader_id: {}, srcComp: {}", proposeId,
                                leader_id(),
-                               parent_component_id());
+                               component_id());
             return rc;
         }
 
@@ -214,7 +226,7 @@ namespace riaps{
             msgCons.setVoteType(riaps::distrcoord::Consensus::VoteType::ACTION);
 
             msgPropLeader.setProposeId(proposeId);
-            msgCons.setSourceComponentId(parent_component_id());
+            msgCons.setSourceComponentId(component_id());
 
             auto msgTsyncA = msgCons.initTsyncCoordA();
             msgTsyncA.setActionId(actionId);
@@ -236,16 +248,16 @@ namespace riaps{
             else
                 logger_->debug("ProposeActionToLeader() proposeId: {}, leader_id: {}, srcComp: {}", proposeId,
                               leader_id(),
-                              parent_component()->ComponentUuid());
+                               component_id());
             return rc;
         }
 
         bool Group::SendLeaderMessage(capnp::MallocMessageBuilder &message) {
-            if (leader_id()!= parent_component_id()) return false;
+            if (leader_id()!= component_id()) return false;
             capnp::MallocMessageBuilder builder;
             auto intMessage = builder.initRoot<riaps::distrcoord::GroupInternals>();
             auto grpMessage = intMessage.initGroupMessage();
-            grpMessage.setSourceComponentId(parent_component_id());
+            grpMessage.setSourceComponentId(component_id());
 
             zframe_t* header;
             header << builder;
@@ -277,7 +289,7 @@ namespace riaps{
                 capnp::MallocMessageBuilder builder;
                 auto intMessage = builder.initRoot<riaps::distrcoord::GroupInternals>();
                 auto grpMessage = intMessage.initGroupMessage();
-                grpMessage.setSourceComponentId(parent_component_id());
+                grpMessage.setSourceComponentId(component_id());
 
                 zframe_t* header;
                 zframe_t* content;
@@ -401,17 +413,14 @@ namespace riaps{
             auto heartbeat = internal.initGroupHeartBeat();
 
             heartbeat.setHeartBeatType(type);
-            heartbeat.setSourceComponentId(this->parent_component_->ComponentUuid());
+            heartbeat.setSourceComponentId(component_id());
 
             return group_pubport_->Send(builder);
         }
 
-        const ComponentBase* Group::parent_component() const {
-            return parent_component_;
-        }
 
-        const std::string Group::parent_component_id() const {
-            return parent_component()->ComponentUuid();
+        const std::string& Group::component_id()  {
+            return component_id_;
         }
 
         uint16_t Group::GetMemberCount() {
@@ -672,7 +681,8 @@ namespace riaps{
                             auto msgFrmPtr = std::shared_ptr<zframe_t>(messageFrame, [](zframe_t* z){zframe_destroy(&z);});
                             (*messageFrame) >> frmReader;
                             //frmReader = capnpReader;
-                            parent_component_->OnGroupMessage(group_id_, frmReader, nullptr);
+                            // RIAPSDC
+                            //parent_component_->OnGroupMessage(group_id_, frmReader, nullptr);
                             return;
                         }
                     }
@@ -701,7 +711,7 @@ namespace riaps{
                         return;
                     } else if (internal.hasMessageToLeader()){
                         auto msgLeader = internal.getMessageToLeader();
-                        if (leader_id() != parent_component()->ComponentUuid()) return;
+                        if (leader_id() != component_id()) return;
 
                         zframe_t* leaderMsgFrame = zmsg_pop(msg);
                         if (!leaderMsgFrame) return;
@@ -709,7 +719,8 @@ namespace riaps{
                         capnp::FlatArrayMessageReader capnpLeaderMsg(nullptr);
                         (*leaderMsgFrame) >> capnpLeaderMsg;
 
-                        parent_component_->OnMessageToLeader(group_id_, capnpLeaderMsg);
+                        // RIAPSDC
+                        //parent_component_->OnMessageToLeader(group_id_, capnpLeaderMsg);
 
                         return;
                     } else if (internal.hasConsensus()) {
@@ -717,7 +728,7 @@ namespace riaps{
                        // m_logger->debug("DC message arrived from {}", msgDistCoord.getSourceComponentId().cStr());
 
 //                        // The current component is the leader
-                        if (leader_id() == parent_component_id()) {
+                        if (leader_id() == component_id()) {
                             //m_logger->debug("DC message arrived and this component is the leader");
 
 //                            // Propose arrived to the leader. Leader forwards it to every groupmember.
@@ -764,7 +775,9 @@ namespace riaps{
                                     proposeFrame = zmsg_pop(msg);
                                     capnp::FlatArrayMessageReader *reader;
                                     (*proposeFrame) >> reader;
-                                    parent_component_->OnPropose(group_id_, msgPropose.getProposeId(), *reader);
+
+                                    // RIAPSDC
+                                    //parent_component_->OnPropose(group_id_, msgPropose.getProposeId(), *reader);
                                 } else if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::ACTION) {
                                     timespec t{
                                             msgCons.getTsyncCoordA().getTime().getTvSec(),
@@ -776,16 +789,18 @@ namespace riaps{
                                     if (t.tv_nsec!=msgCons.getTsyncCoordA().getTime().getTvNsec())
                                         logger_->error("tv_nsec!=TvNsec");
 
-                                    parent_component_->OnActionPropose(group_id_,
-                                                                      msgPropose.getProposeId(),
-                                                                      msgCons.getTsyncCoordA().getActionId(),
-                                                                      t);
+                                    // RIAPSDC
+//                                    parent_component_->OnActionPropose(group_id_,
+//                                                                      msgPropose.getProposeId(),
+//                                                                      msgCons.getTsyncCoordA().getActionId(),
+//                                                                      t);
                                 }
                             } else if (msgCons.hasAnnounce()) {
                                 auto msgAnnounce = msgCons.getAnnounce();
-                                parent_component_->OnAnnounce(group_id_,
-                                                             msgAnnounce.getProposeId(),
-                                                             msgAnnounce.getVoteResult() == riaps::distrcoord::Consensus::VoteResults::ACCEPTED);
+                                // RIAPSDC
+//                                parent_component_->OnAnnounce(group_id_,
+//                                                             msgAnnounce.getProposeId(),
+//                                                             msgAnnounce.getVoteResult() == riaps::distrcoord::Consensus::VoteResults::ACCEPTED);
                             }
                         }
 
@@ -804,7 +819,7 @@ namespace riaps{
             capnp::MallocMessageBuilder builder;
             auto msgInt = builder.initRoot<riaps::distrcoord::GroupInternals>();
             auto msgCons = msgInt.initConsensus();
-            msgCons.setSourceComponentId(parent_component()->ComponentUuid());
+            msgCons.setSourceComponentId(component_id());
             auto msgVote = msgCons.initVote();
             msgVote.setProposeId(propose_id);
             if (accept)

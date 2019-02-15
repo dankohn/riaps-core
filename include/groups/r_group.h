@@ -6,7 +6,6 @@
 #define RIAPS_CORE_R_GROUP_H_H
 
 #include <const/r_const.h>
-#include <componentmodel/r_componentbase.h>
 #include <componentmodel/r_configuration.h>
 #include <componentmodel/ports/r_pubportgroup.h>
 #include <componentmodel/ports/r_subportgroup.h>
@@ -40,7 +39,6 @@ namespace riaps {
             std::string group_type_id;
             std::string group_name;
 
-
             /**
              * To use GroupId in std::map as key
              * @param other
@@ -49,7 +47,6 @@ namespace riaps {
             bool operator<(const GroupId& other) const;
 
             bool operator==(const GroupId& other) const;
-
 
             MSGPACK_DEFINE(group_name, group_type_id);
         };
@@ -89,7 +86,11 @@ namespace riaps {
              * Initializes a group, by the given groupId
              * @param group_id Must have valid configuration entry with the matching id.
              */
-            Group(const GroupId& group_id, const std::string& component_name, const std::string& application_name, const std::string& actor_name);
+            Group(const GroupId& group_id,
+                  const std::string& component_id,
+                  const std::string& component_name,
+                  const std::string& application_name,
+                  const std::string& actor_name);
 
             /**
              * Creates the communication ports and registers the group in the discovery service.
@@ -121,10 +122,12 @@ namespace riaps {
                                        const std::string &actionId,
                                        const timespec &absTime);
 
-            const ComponentBase* parent_component() const;
-            const std::string parent_component_id() const;
+            const std::string& component_id();
+            const std::string& component_name();
 
             std::shared_ptr<std::set<std::string>> GetKnownComponents();
+
+            std::shared_ptr<spd::logger> logger();
 
             /**
              * Counts the records in _knownNodes map
@@ -140,6 +143,7 @@ namespace riaps {
             const std::string component_name_;
             const std::string application_name_;
             const std::string actor_name_;
+            const std::string component_id_;
 
             /**
              * Delete records from the _knownNodes cache, it the Timer is exceeded
@@ -182,7 +186,7 @@ namespace riaps {
             std::mt19937         random_generator_;
             std::uniform_int_distribution<int> timeout_distribution_;
 
-            ComponentBase* parent_component_;
+            //ComponentBase* parent_component_;
 
             std::unique_ptr<riaps::groups::GroupLead> group_leader_;
         };

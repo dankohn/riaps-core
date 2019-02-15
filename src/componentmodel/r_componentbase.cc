@@ -186,7 +186,8 @@ namespace riaps{
                     capnp::FlatArrayMessageReader reader(capnp_data);
                     auto msgDiscoUpd  = reader.getRoot<riaps::discovery::DiscoUpd>();
                     auto msgGroupUpd  = msgDiscoUpd.getGroupUpdate();
-                    comp->UpdateGroup(msgGroupUpd);
+                    // RIAPSDC
+                    //comp->UpdateGroup(msgGroupUpd);
 
                     zframe_destroy(&capnp_msgbody);
                 }
@@ -314,15 +315,15 @@ namespace riaps{
                 // just poll timeout
             }
 
-            // Process group messages
-            if (!comp->groups_.empty()){
-
-                // Handle all group messages
-                for (auto& grp : comp->groups_){
-                    grp.second->SendPingWithPeriod();
-                    grp.second->FetchNextMessage();
-                }
-            }
+//            // Process group messages
+//            if (!comp->groups_.empty()){
+//
+//                // Handle all group messages
+//                for (auto& grp : comp->groups_){
+//                    grp.second->SendPingWithPeriod();
+//                    grp.second->FetchNextMessage();
+//                }
+//            }
         }
         zpoller_destroy(&poller);
         zsock_destroy(&timerportOneShot);
@@ -504,17 +505,17 @@ namespace riaps{
         if (portBase == nullptr) return nullptr;
         return portBase->AsSubscribePort();
     }
-
-    void ComponentBase::OnGroupMessage(const riaps::groups::GroupId &groupId,
-                                       capnp::FlatArrayMessageReader &capnpreader, riaps::ports::PortBase *port) {
-        riaps_logger_->error("Group message arrived, but no handler implemented in the component");
-    }
-
-    void ComponentBase::OnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message) {
-        riaps_logger_->error("Group message arrived to the leader, but {} is not implemented in component: {}",
-                       __FUNCTION__,
-                       component_name());
-    }
+// RIAPSDC
+//    void ComponentBase::OnGroupMessage(const riaps::groups::GroupId &groupId,
+//                                       capnp::FlatArrayMessageReader &capnpreader, riaps::ports::PortBase *port) {
+//        riaps_logger_->error("Group message arrived, but no handler implemented in the component");
+//    }
+//
+//    void ComponentBase::OnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message) {
+//        riaps_logger_->error("Group message arrived to the leader, but {} is not implemented in component: {}",
+//                       __FUNCTION__,
+//                       component_name());
+//    }
 
     /**
      *  @param portName
@@ -563,13 +564,16 @@ namespace riaps{
         return insidePort->Send(message);
     }
 
-    bool ComponentBase::SendLeaderMessage(const riaps::groups::GroupId &groupId,
-                                          capnp::MallocMessageBuilder &message) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr) return false;
-        if (!IsLeader(group)) return false;
-        return group->SendLeaderMessage(message);
-    }
+//    bool ComponentBase::SendLeaderMessage(const riaps::groups::GroupId &groupId,
+//                                          capnp::MallocMessageBuilder &message) {
+//
+//        // RIAPSDC
+//        //        auto group = getGroupById(groupId);
+//        //        if (group == nullptr) return false;
+//        //        if (!IsLeader(group)) return false;
+//        //        return group->SendLeaderMessage(message);
+//        return true;
+//    }
 
 
 
@@ -685,46 +689,54 @@ namespace riaps{
             riaps_logger_->error("{} Unable to convert port: {}", __func__, port_name);
         return query_port->SendQuery(message, requestId);
     }
+// RIAPSDC
+//    bool ComponentBase::SendGroupMessage(const riaps::groups::GroupId &groupId,
+//                                         capnp::MallocMessageBuilder &message,
+//                                         const std::string& portName) {
+//        // RIAPSDC
+////        // Search the group
+////        if (groups_.find(groupId)==groups_.end()) return false;
+////
+////        riaps::groups::Group* group = groups_[groupId].get();
+////
+////        return group->SendMessage(message, portName);
+//    return true;
+//
+//    }
+//
+//    bool ComponentBase::SendGroupMessage(const riaps::groups::GroupId&& groupId,
+//                                         capnp::MallocMessageBuilder &message,
+//                                         const std::string& portName) {
+//        return SendGroupMessage(groupId, message, portName);
+//
+//    }
 
-    bool ComponentBase::SendGroupMessage(const riaps::groups::GroupId &groupId,
-                                         capnp::MallocMessageBuilder &message,
-                                         const std::string& portName) {
-        // Search the group
-        if (groups_.find(groupId)==groups_.end()) return false;
+//    bool ComponentBase::SendMessageToLeader(const riaps::groups::GroupId &groupId,
+//                                            capnp::MallocMessageBuilder &message) {
+//        // RIAPSDC
+////        auto group = getGroupById(groupId);
+////        if (group == nullptr){
+////            return false;
+////        }
+////
+////        return group->SendMessageToLeader(message);
+//        return true;
+//    }
 
-        riaps::groups::Group* group = groups_[groupId].get();
+// RIAPSDC
+//    void ComponentBase::OnMessageFromLeader(const riaps::groups::GroupId &groupId,
+//                                            capnp::FlatArrayMessageReader &message) {
+//        riaps_logger_->debug("Message from the leader arrived, but no OnMessageFromHandler() implementation has found in component: {}", component_config().component_name);
+//    }
 
-        return group->SendMessage(message, portName);
-
-    }
-
-    bool ComponentBase::SendGroupMessage(const riaps::groups::GroupId&& groupId,
-                                         capnp::MallocMessageBuilder &message,
-                                         const std::string& portName) {
-        return SendGroupMessage(groupId, message, portName);
-
-    }
-
-    bool ComponentBase::SendMessageToLeader(const riaps::groups::GroupId &groupId,
-                                            capnp::MallocMessageBuilder &message) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr){
-            return false;
-        }
-
-        return group->SendMessageToLeader(message);
-    }
-
-    void ComponentBase::OnMessageFromLeader(const riaps::groups::GroupId &groupId,
-                                            capnp::FlatArrayMessageReader &message) {
-        riaps_logger_->debug("Message from the leader arrived, but no OnMessageFromHandler() implementation has found in component: {}", component_config().component_name);
-    }
-
-    riaps::groups::Group* ComponentBase::getGroupById(const riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId)==groups_.end()) return nullptr;
-
-        return groups_[groupId].get();
-    }
+// RIAPSDC
+//    riaps::groups::Group* ComponentBase::getGroupById(const riaps::groups::GroupId &groupId) {
+//        // RIAPSDC
+////        if (groups_.find(groupId)==groups_.end()) return nullptr;
+////
+////        return groups_[groupId].get();
+//        return nullptr;
+//    }
 
 //    std::string ComponentBase::getTimerChannel() {
 //        return fmt::format("inproc://timer{}", ComponentUuid());
@@ -744,90 +756,103 @@ namespace riaps{
     }
 
     // TODO: Remove timeout parameter, too low level parameter.
-    uint16_t ComponentBase::GetGroupMemberCount(const riaps::groups::GroupId &groupId, int64_t timeout) {
-        if (groups_.find(groupId)==groups_.end())
-            return 0;
+    //uint16_t ComponentBase::GetGroupMemberCount(const riaps::groups::GroupId &groupId, int64_t timeout) {
+        // RIAPSDC
+//        if (groups_.find(groupId)==groups_.end())
+//            return 0;
+//
+//        return groups_[groupId]->GetMemberCount();
+//        return 0;
+    //}
 
-        return groups_[groupId]->GetMemberCount();
-    }
+    //string ComponentBase::GetLeaderId(const riaps::groups::GroupId &groupId) {
+        // RIAPSDC
+//        if (groups_.find(groupId)==groups_.end())
+//            return "";
+//
+//        return groups_[groupId]->leader_id();
+  //      return "";
+    //}
 
-    string ComponentBase::GetLeaderId(const riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId)==groups_.end())
-            return "";
+//    bool ComponentBase::JoinGroup(riaps::groups::GroupId &&groupId) {
+//        return JoinGroup(groupId);
+//    }
 
-        return groups_[groupId]->leader_id();
-    }
-
-    bool ComponentBase::JoinGroup(riaps::groups::GroupId &&groupId) {
-        return JoinGroup(groupId);
-    }
-
-    bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId)!=groups_.end())
-            return false;
-        auto new_group = make_unique<riaps::groups::Group>(groupId, component_name(), actor()->application_name(), actor()->actor_name());
-
-        if (new_group->InitGroup()) {
-            groups_[groupId] = std::move(new_group);
-            return true;
-        }
-
-        return false;
-    }
-
-    bool ComponentBase::LeaveGroup(riaps::groups::GroupId &&groupId) {
-        return JoinGroup(groupId);
-    }
-
-    bool ComponentBase::LeaveGroup(riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId) == groups_.end())
-            return false;
-        groups_.erase(groupId);
-        return true;
-    }
-
-    std::vector<riaps::groups::GroupId> ComponentBase::GetGroupMemberships() {
-        std::vector<riaps::groups::GroupId> results;
-
-        for(auto& group : groups_) {
-            results.push_back(group.first);
-        }
-
-        return results;
-    }
-
-    bool ComponentBase::IsMemberOf(riaps::groups::GroupId &groupId) {
-        for(auto& group : groups_) {
-            if (group.first == groupId)
-                return true;
-        }
-        return false;
-    }
-
-    bool ComponentBase::IsLeader(const riaps::groups::Group* group) {
-        return ComponentUuid() == group->leader_id();
-    }
-
-    bool ComponentBase::IsLeader(const riaps::groups::GroupId &groupId) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr) return false;
-        return IsLeader(group);
-    }
-
-    bool ComponentBase::IsLeaderAvailable(const riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId) == groups_.end())
-            return false;
-        return !groups_[groupId]->leader_id().empty();
-    }
-
-    std::vector<riaps::groups::GroupId> ComponentBase::GetGroupMembershipsByType(const std::string &groupType) {
-        std::vector<riaps::groups::GroupId> results;
-        for(auto& group : groups_) {
-            if (group.first.group_type_id != groupType) continue;
-            results.push_back(group.first);
-        }
-        return results;
-    }
+//    bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
+//        // RIAPSDC
+////        if (groups_.find(groupId)!=groups_.end())
+////            return false;
+////        auto new_group = make_unique<riaps::groups::Group>(groupId, component_name(), actor()->application_name(), actor()->actor_name());
+////
+////        if (new_group->InitGroup()) {
+////            groups_[groupId] = std::move(new_group);
+////            return true;
+////        }
+//
+//        return false;
+//    }
+//
+//    bool ComponentBase::LeaveGroup(riaps::groups::GroupId &&groupId) {
+//        return JoinGroup(groupId);
+//    }
+//
+//    bool ComponentBase::LeaveGroup(riaps::groups::GroupId &groupId) {
+//        // RIAPSDC
+////        if (groups_.find(groupId) == groups_.end())
+////            return false;
+////        groups_.erase(groupId);
+//        return true;
+//    }
+//
+//    std::vector<riaps::groups::GroupId> ComponentBase::GetGroupMemberships() {
+//        std::vector<riaps::groups::GroupId> results;
+//
+//        // RIAPSDC
+////        for(auto& group : groups_) {
+////            results.push_back(group.first);
+////        }
+//
+//        return results;
+//    }
+//
+//    bool ComponentBase::IsMemberOf(riaps::groups::GroupId &groupId) {
+//        // RIAPSDC
+////        for(auto& group : groups_) {
+////            if (group.first == groupId)
+////                return true;
+////        }
+//        return false;
+//    }
+//
+//    bool ComponentBase::IsLeader(const riaps::groups::Group* group) {
+//        // RIAPSDC
+//        //return ComponentUuid() == group->leader_id();
+//        return true;
+//    }
+//
+//    bool ComponentBase::IsLeader(const riaps::groups::GroupId &groupId) {
+//        auto group = getGroupById(groupId);
+//        if (group == nullptr) return false;
+//        return IsLeader(group);
+//    }
+//
+//    bool ComponentBase::IsLeaderAvailable(const riaps::groups::GroupId &groupId) {
+//        // RIAPSDC
+////        if (groups_.find(groupId) == groups_.end())
+////            return false;
+////        return !groups_[groupId]->leader_id().empty();
+//        return true;
+//    }
+//
+//    std::vector<riaps::groups::GroupId> ComponentBase::GetGroupMembershipsByType(const std::string &groupType) {
+//        std::vector<riaps::groups::GroupId> results;
+//        // RIAPSDC
+////        for(auto& group : groups_) {
+////            if (group.first.group_type_id != groupType) continue;
+////            results.push_back(group.first);
+////        }
+//        return results;
+//    }
 
 //    uint64_t ComponentBase::ScheduleTimer(std::chrono::steady_clock::time_point &tp) {
 //        std::string timerChannel = getOneShotTimerChannel();
@@ -949,70 +974,77 @@ namespace riaps{
     }
 
 
-
-    void ComponentBase::OnAnnounce(const riaps::groups::GroupId &groupId, const std::string &proposeId, bool accepted) {
-        riaps_logger_->error("Vote result is announced, but no handler implemented in component {}", component_name());
-    }
-
-    void ComponentBase::OnPropose(riaps::groups::GroupId &groupId, const std::string &proposeId,
-                                  capnp::FlatArrayMessageReader &message) {
-        riaps_logger_->error("Leader proposed a value but no handler is implemented in component {}", component_name());
-    }
-
-    void ComponentBase::OnActionPropose(riaps::groups::GroupId &groupId,
-                                        const std::string      &proposeId,
-                                        const std::string      &actionId,
-                                        const timespec         &timePoint) {
-        riaps_logger_->info("Leader proposed an action, but no handler is implemented in component {}", component_name());
-    }
+    // RIAPSDC
+//    void ComponentBase::OnAnnounce(const riaps::groups::GroupId &groupId, const std::string &proposeId, bool accepted) {
+//        riaps_logger_->error("Vote result is announced, but no handler implemented in component {}", component_name());
+//    }
+//
+//    void ComponentBase::OnPropose(riaps::groups::GroupId &groupId, const std::string &proposeId,
+//                                  capnp::FlatArrayMessageReader &message) {
+//        riaps_logger_->error("Leader proposed a value but no handler is implemented in component {}", component_name());
+//    }
+//
+//    void ComponentBase::OnActionPropose(riaps::groups::GroupId &groupId,
+//                                        const std::string      &proposeId,
+//                                        const std::string      &actionId,
+//                                        const timespec         &timePoint) {
+//        riaps_logger_->info("Leader proposed an action, but no handler is implemented in component {}", component_name());
+//    }
 
     const string ComponentBase::component_name() const {
         return component_config().component_name;
     }
 
-    string ComponentBase::SendPropose(const riaps::groups::GroupId &groupId, capnp::MallocMessageBuilder &message) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr) return "";
-
-        auto uuid = unique_ptr<zuuid_t, function<void(zuuid_t*)>>(zuuid_new(), [](zuuid_t* u){zuuid_destroy(&u);});
-        string strUuid = zuuid_str(uuid.get());
-
-        if (group->ProposeValueToLeader(message, strUuid)){
-            return strUuid;
-        }
-        return "";
-    }
-
-    string ComponentBase::ProposeAction(const riaps::groups::GroupId &groupId,
-                                        const std::string &actionId,
-                                        const timespec &absTime) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr) return "";
-
-        auto uuid = unique_ptr<zuuid_t, function<void(zuuid_t*)>>(zuuid_new(), [](zuuid_t* u){zuuid_destroy(&u);});
-        string strUuid = zuuid_str(uuid.get());
-
-        if (group->ProposeActionToLeader(strUuid, actionId, absTime)){
-            return strUuid;
-        }
-        return "";
-    }
-
-    bool ComponentBase::SendVote(const riaps::groups::GroupId &groupId, const std::string &proposeId, bool accept) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr) return false;
-
-        return group->SendVote(proposeId, accept);
-    }
-
-    void ComponentBase::UpdateGroup(riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {
-        // First, find the affected groups
-        riaps::groups::GroupId gid;
-        gid.group_name    = msgGroupUpdate.getGroupId().getGroupName().cStr();
-        gid.group_type_id = msgGroupUpdate.getGroupId().getGroupType().cStr();
-
-        if (groups_.find(gid) == groups_.end()) return;
-
-        groups_[gid]->ConnectToNewServices(msgGroupUpdate);
-    }
+    // RIAPSDC
+//    string ComponentBase::SendPropose(const riaps::groups::GroupId &groupId, capnp::MallocMessageBuilder &message) {
+//        auto group = getGroupById(groupId);
+//        if (group == nullptr) return "";
+//
+//        auto uuid = unique_ptr<zuuid_t, function<void(zuuid_t*)>>(zuuid_new(), [](zuuid_t* u){zuuid_destroy(&u);});
+//        string strUuid = zuuid_str(uuid.get());
+//
+//        //RIAPSDC
+//
+////        if (group->ProposeValueToLeader(message, strUuid)){
+////            return strUuid;
+////        }
+//        return "";
+//    }
+//
+//    string ComponentBase::ProposeAction(const riaps::groups::GroupId &groupId,
+//                                        const std::string &actionId,
+//                                        const timespec &absTime) {
+//        auto group = getGroupById(groupId);
+//        if (group == nullptr) return "";
+//
+//        auto uuid = unique_ptr<zuuid_t, function<void(zuuid_t*)>>(zuuid_new(), [](zuuid_t* u){zuuid_destroy(&u);});
+//        string strUuid = zuuid_str(uuid.get());
+//
+//        // RIAPSDC
+////        if (group->ProposeActionToLeader(strUuid, actionId, absTime)){
+////            return strUuid;
+////        }
+//        return "";
+//    }
+//
+//    bool ComponentBase::SendVote(const riaps::groups::GroupId &groupId, const std::string &proposeId, bool accept) {
+//        auto group = getGroupById(groupId);
+//        if (group == nullptr) return false;
+//
+//        // RIAPSDC
+//        //return group->SendVote(proposeId, accept);
+//        return false;
+//    }
+//
+//    void ComponentBase::UpdateGroup(riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {
+//        // First, find the affected groups
+//        riaps::groups::GroupId gid;
+//        gid.group_name    = msgGroupUpdate.getGroupId().getGroupName().cStr();
+//        gid.group_type_id = msgGroupUpdate.getGroupId().getGroupType().cStr();
+//
+//        // RIAPSDC
+////        if (groups_.find(gid) == groups_.end()) return;
+////
+////        groups_[gid]->ConnectToNewServices(msgGroupUpdate);
+//    }
 }
