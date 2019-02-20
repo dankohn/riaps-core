@@ -72,15 +72,19 @@ namespace riaps{
 
             random_generator_ = std::mt19937(random_device_());
             timeout_distribution_ = std::uniform_int_distribution<int>(PING_BASE_PERIOD*1.1, PING_BASE_PERIOD*2);
+            logger_->info("{} done", __func__);
         }
 
         bool Group::InitGroup() {
 
             // If the groupid doesn't exist, just skip the initialization and return false
             // RIAPSDC
-            GroupTypeConf* groupTypeConf = nullptr;//parent_component_->actor()->GetGroupType(group_id_.group_type_id);
-            if (groupTypeConf == nullptr)
-                return false;
+            GroupTypeConf* groupTypeConf = new GroupTypeConf();
+            groupTypeConf->has_consensus = false;
+            groupTypeConf->has_leader    = false;
+            groupTypeConf->group_type_id = "gType";
+//            if (groupTypeConf == nullptr)
+//                return false;
 
             group_type_conf_ = *groupTypeConf;
 
@@ -341,14 +345,6 @@ namespace riaps{
             for (int i =0; i<msgGroupUpdate.getServices().size(); i++){
                 string message_type = msgGroupUpdate.getServices()[i].getMessageType().cStr();
 
-//                // RIAPS port
-//                if (message_type == INTERNAL_MESSAGETYPE){
-//                    std::string address = msgGroupUpdate.getServices()[i].getAddress().cStr();
-//                    address = "tcp://" + address;
-//                    _groupSubPort->ConnectToPublihser(address);
-//                    continue;
-//                }
-
                 for (auto& groupPort : group_ports_){
                     auto subscriberPort = groupPort.second->AsGroupSubscriberPort();
                     if (subscriberPort == nullptr) continue;
@@ -362,13 +358,13 @@ namespace riaps{
         }
 
         bool Group::SendPing() {
-            //m_logger->debug(">>PING>>");
+            logger_->debug(">>PING>>");
             ping_timeout_.Reset();
             return SendHeartBeat(dc::HeartBeatType::PING);
         }
 
         bool Group::SendPong() {
-            //m_logger->debug(">>PONG>>");
+            logger_->debug(">>PONG>>");
             return SendHeartBeat(dc::HeartBeatType::PONG);
         }
 
@@ -835,6 +831,7 @@ namespace riaps{
 //                zframe_destroy(&_lastFrame);
 //                _lastFrame=nullptr;
 //            }
+            logger_->info("{}", __func__);
             if (group_poller_ != nullptr)
                 zpoller_destroy(&group_poller_);
         }
