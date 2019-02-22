@@ -30,6 +30,8 @@ namespace spd = spdlog;
 namespace riaps {
     namespace groups {
 
+        void group_actor (zsock_t *pipe, void *args);
+
         class GroupLead;
 
         /**
@@ -122,8 +124,34 @@ namespace riaps {
                                        const std::string &actionId,
                                        const timespec &absTime);
 
+            void HandleGroupMessage(zmsg_t* message_frame);
+            void HandleHeartBeat(riaps::distrcoord::GroupHeartBeat::Reader& heart_beat);
+
             const std::string& component_id();
             const std::string& component_name();
+            const std::string& application_name() {
+                return application_name_;
+            };
+
+            const std::string& actor_name() {
+                return actor_name_;
+            }
+
+            GroupId group_id() {
+                return group_id_;
+            }
+
+            riaps::ports::GroupSubscriberPort* group_sub_port() {
+                return group_subport_.get();
+            }
+
+            const GroupTypeConf& grouptype_conf() {
+                return group_type_conf_;
+            }
+
+            riaps::groups::GroupLead* group_leader() {
+                return group_leader_.get();
+            }
 
             std::shared_ptr<std::set<std::string>> GetKnownComponents();
 
@@ -137,6 +165,8 @@ namespace riaps {
             uint16_t GetMemberCount();
 
             std::string leader_id() const;
+
+            std::map<const zsock_t*, std::shared_ptr<riaps::ports::PortBase>> group_ports_;
 
             ~Group();
         private:
@@ -152,7 +182,7 @@ namespace riaps {
             uint32_t DeleteTimeoutNodes();
             bool SendHeartBeat(riaps::distrcoord::HeartBeatType type);
 
-            GroupId     group_id_;
+            GroupId       group_id_;
             GroupTypeConf group_type_conf_;
 
             /**
@@ -161,7 +191,7 @@ namespace riaps {
             std::shared_ptr<riaps::ports::GroupPublisherPort>    group_pubport_;
             std::shared_ptr<riaps::ports::GroupSubscriberPort>   group_subport_;
 
-            std::map<const zsock_t*, std::shared_ptr<riaps::ports::PortBase>> group_ports_;
+
 
             /**
              *
@@ -189,6 +219,8 @@ namespace riaps {
             //ComponentBase* parent_component_;
 
             std::unique_ptr<riaps::groups::GroupLead> group_leader_;
+
+            zsock_t* component_port_;
         };
 
     }

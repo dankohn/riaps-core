@@ -20,6 +20,9 @@ namespace riaps{
         //zsock_t* timerport = zsock_new_pull(comp->getTimerChannel().c_str());
         //assert(timerport);
 
+        // PULL socket for incoming messages from groups
+        zsock_t* group_port = zsock_new_pull(fmt::format("inproc://group_{}", comp->component_uuid()).c_str());
+        assert(group_port);
 
         zsock_t* timerportOneShot = zsock_new_pull(comp->getOneShotTimerChannel().c_str());
         assert(timerportOneShot);
@@ -40,6 +43,10 @@ namespace riaps{
         rc = zpoller_add(poller, pycontrol);
         assert(rc==0);
 
+        rc = zpoller_add(poller, group_port);
+        assert(rc==0);
+
+
         bool terminated = false;
         bool firstrun = true;
 
@@ -48,6 +55,8 @@ namespace riaps{
 
         // Register ZMQ Socket - riapsPort pairs. For the quick retrieve.
         std::unordered_map<const zsock_t*, const ports::PortBase*>   portSockets;
+
+
 
         // ZMQ Socket - Inside port pairs
         //std::map<const zsock_t*, const ports::InsidePort*> insidePorts;
@@ -743,10 +752,10 @@ namespace riaps{
 //    }
 
     string ComponentBase::getOneShotTimerChannel() {
-        return fmt::format("inproc://oneshottimer{}",ComponentUuid());
+        return fmt::format("inproc://oneshottimer{}", component_uuid());
     }
 
-    const string ComponentBase::ComponentUuid() const{
+    const string ComponentBase::component_uuid() const{
         string uuid_str = zuuid_str(component_uuid_);
         return uuid_str;
     }
@@ -778,19 +787,18 @@ namespace riaps{
 //        return JoinGroup(groupId);
 //    }
 
-//    bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
-//        // RIAPSDC
-////        if (groups_.find(groupId)!=groups_.end())
-////            return false;
-////        auto new_group = make_unique<riaps::groups::Group>(groupId, component_name(), actor()->application_name(), actor()->actor_name());
-////
-////        if (new_group->InitGroup()) {
-////            groups_[groupId] = std::move(new_group);
-////            return true;
-////        }
-//
-//        return false;
-//    }
+    bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
+        if (groups_.find(groupId)!=groups_.end())
+            return false;
+        auto new_group = make_unique<riaps::groups::Group>(groupId, component_uuid(), component_name(), actor()->application_name(), actor()->actor_name());
+
+        if (new_group->InitGroup()) {
+            groups_[groupId] = std::move(new_group);
+            return true;
+        }
+
+        return false;
+    }
 //
 //    bool ComponentBase::LeaveGroup(riaps::groups::GroupId &&groupId) {
 //        return JoinGroup(groupId);

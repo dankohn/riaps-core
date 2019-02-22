@@ -15,7 +15,7 @@
 #include <componentmodel/r_configuration.h>
 #include <componentmodel/r_oneshottimer.h>
 #include <componentmodel/r_payload.h>
-//#include <groups/r_group.h>
+#include <groups/r_group.h>
 #include <messaging/disco.capnp.h>
 
 #include <msgpack.hpp>
@@ -30,6 +30,7 @@
 #include <queue>
 #include <random>
 #include <ctime>
+#include <unordered_map>
 
 
 #include <componentmodel/ports/r_publisherport.h>
@@ -153,7 +154,7 @@ namespace riaps {
          *
          * @return The component unique ID.
          */
-        const std::string ComponentUuid() const;
+        const std::string component_uuid() const;
 
         /**
          * Resource management handlers
@@ -321,7 +322,7 @@ namespace riaps {
          * @param groupName
          */
 //        bool JoinGroup(riaps::groups::GroupId&& groupId);
-//        bool JoinGroup(riaps::groups::GroupId&  groupId);
+        bool JoinGroup(riaps::groups::GroupId&  groupId);
 
         /**
          *
@@ -403,6 +404,9 @@ namespace riaps {
         const ports::PeriodicTimer*  InitTimerPort      (const ComponentPortTim&);
         const ports::InsidePort*     InitInsidePort     (const ComponentPortIns&);
 
+        std::map<riaps::groups::GroupId,
+                           std::unique_ptr<riaps::groups::Group>> groups_;
+
 
 
 
@@ -449,10 +453,6 @@ namespace riaps {
          * @return
          */
         //bool IsLeader(const riaps::groups::Group* groupId);
-
-//        // RIAPSDC
-//        std::map<riaps::groups::GroupId,
-//                 std::unique_ptr<riaps::groups::Group>> groups_;
 
         // RIAPSDC
         //riaps::groups::Group* getGroupById(const riaps::groups::GroupId &groupId);
