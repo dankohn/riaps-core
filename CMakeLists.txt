@@ -125,6 +125,7 @@ list (APPEND riapslib_SOURCE
         src/groups/r_group.cc
         src/groups/r_grouplead.cc
         src/utils/r_utils.cc
+        src/groups/r_group_shell.cc
         )
 
 # libriaps headers
@@ -165,6 +166,7 @@ list (APPEND riapslib_HEADERS
         include/utils/r_expirablelist.h
         include/utils/r_timeout.h
         include/framework/rfw_security.h
+        include/groups/groupshell.h
         )
 
 # libriaps

@@ -108,7 +108,7 @@ struct groupt_ports {
  */
 struct GroupTypeConf {
     std::string   group_type_id;
-    groupt_ports  group_type_ports;
+    //groupt_ports  group_type_ports;
     bool          has_leader;
     bool          has_consensus;
 };

@@ -9,6 +9,8 @@
 /*10s in msec*/
 constexpr auto PING_BASE_PERIOD = 10*1000;
 
+constexpr auto ONGROUP_MESSAGE = "OnGroupMessage";
+
 namespace dc = riaps::distrcoord;
 
 using namespace std;
@@ -40,15 +42,23 @@ namespace riaps{
             return "";
         }
 
-        Group::Group(const GroupId &group_id, ComponentBase* parentComponent) :
-                group_id_(group_id),
-                parent_component_(parentComponent),
+        Group::Group(const GroupDetails & group_details, bool has_leader, bool has_consensus) :
+                group_details_(group_details),
                 group_pubport_(nullptr),
                 group_subport_(nullptr),
-                //_lastFrame(nullptr),
                 group_leader_(nullptr),
-                group_poller_(nullptr) {
-            logger_ = spd::get(parentComponent->component_config().component_name);
+                group_poller_(nullptr),
+                has_consensus_(has_consensus),
+                has_leader_(has_leader) {
+
+            auto push_address = fmt::format("inproc://group_{}", group_details.component_id);
+            notif_socket_ = unique_ptr<zsock_t, function<void(zsock_t*)>>(zsock_new_push(push_address.c_str()),
+                                                                              [](zsock_t* z){
+                                                                                  zsock_destroy(&z);
+                                                                              });
+
+            // TODO: what is the logger id here?
+            logger_ = spd::get(group_details_.component_id);
             ping_timeout_ = Timeout<std::chrono::milliseconds>(PING_BASE_PERIOD);
 
             random_generator_ = std::mt19937(random_device_());
@@ -56,27 +66,17 @@ namespace riaps{
         }
 
         bool Group::InitGroup() {
-
-            // If the groupid doesn't exist, just skip the initialization and return false
-            auto groupTypeConf = parent_component_->actor()->GetGroupType(group_id_.group_type_id);
-            if (groupTypeConf == nullptr)
-                return false;
-
-            group_type_conf_ = *groupTypeConf;
-
-
             // Default port for the group. Reserved for RIAPS internal communication protocols
             GroupPortPub internalPubConfig;
             internalPubConfig.message_type = INTERNAL_MESSAGETYPE;
             internalPubConfig.is_local     = false;
             internalPubConfig.port_name    = INTERNAL_PUB_NAME;
 
-            vector<GroupService> initializedServices;
+            vector<GroupService> initialized_services;
 
             group_pubport_ = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(internalPubConfig, parent_component_));
-            initializedServices.push_back(group_pubport_->GetGroupService());
+            initialized_services.push_back(group_pubport_->GetGroupService());
             group_ports_[group_pubport_->port_socket()] = group_pubport_;
-
 
             GroupPortSub internalSubConfig;
             internalSubConfig.message_type = INTERNAL_MESSAGETYPE;
@@ -89,30 +89,30 @@ namespace riaps{
             // Initialize the zpoller and add the group sub port
             group_poller_ = zpoller_new(const_cast<zsock_t*>(group_subport_->port_socket()), nullptr);
 
-            // Initialize user defined publishers
-            for(auto& portDeclaration : group_type_conf_.group_type_ports.pubs){
-                auto newPubPort = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(portDeclaration, parent_component_));
-                initializedServices.push_back(newPubPort->GetGroupService());
-                group_ports_[newPubPort->port_socket()]=std::move(newPubPort);
+//            // Initialize user defined publishers
+//            for(auto& portDeclaration : group_type_conf_.group_type_ports.pubs){
+//                auto newPubPort = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(portDeclaration, parent_component_));
+//                initializedServices.push_back(newPubPort->GetGroupService());
+//                group_ports_[newPubPort->port_socket()]=std::move(newPubPort);
+//
+//            }
+//
+//            // Initialize user defined subscribers
+//            for(auto& portDeclaration : group_type_conf_.group_type_ports.subs){
+//                auto newSubPort = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(portDeclaration, parent_component_));
+//                zpoller_add(group_poller_, const_cast<zsock_t*>(newSubPort->port_socket()));
+//                group_ports_[newSubPort->port_socket()] = std::move(newSubPort);
+//
+//            }
 
-            }
-
-            // Initialize user defined subscribers
-            for(auto& portDeclaration : group_type_conf_.group_type_ports.subs){
-                auto newSubPort = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(portDeclaration, parent_component_));
-                zpoller_add(group_poller_, const_cast<zsock_t*>(newSubPort->port_socket()));
-                group_ports_[newSubPort->port_socket()] = std::move(newSubPort);
-
-            }
-
-            bool hasJoined = Disco::JoinGroup(
-                    parent_component_->actor()->application_name(),
-                    parent_component_->ComponentUuid(),
+            bool has_joined = Disco::JoinGroup(
+                    group_details_.app_name,
+                    group_details_.component_id,
                     group_id_,
-                    initializedServices);
+                    initialized_services);
 
             // Setup leader election
-            if (hasJoined && group_type_conf_.has_leader) {
+            if (has_joined && has_leader_) {
                 group_leader_ = std::unique_ptr<riaps::groups::GroupLead>(
                         new GroupLead(this, &known_nodes_)
                 );
@@ -122,11 +122,16 @@ namespace riaps{
             }
 
             // Register all of the publishers
-            return hasJoined;
+            return has_joined;
         }
 
+        std::shared_ptr<riaps::ports::GroupPublisherPort> Group::group_pubport() {
+            return group_pubport_;
+        }
 
-
+        std::shared_ptr<riaps::ports::GroupSubscriberPort> Group::group_subport() {
+            return group_subport_;
+        }
 
         bool Group::SendInternalMessage(capnp::MallocMessageBuilder &message) {
             return SendMessage(message, INTERNAL_PUB_NAME);
@@ -252,41 +257,51 @@ namespace riaps{
             return SendMessage(&zmsg, INTERNAL_PUB_NAME);
         }
 
-
-
-        bool Group::SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName){
-
-            // If the port is not specified, send on the internal port
-            if (portName != "") {
-                for (auto it = group_ports_.begin(); it!=group_ports_.end(); it++){
-                    auto currentPort = it->second->AsGroupPublishPort();
-                    if (currentPort == nullptr) continue;
-                    if (currentPort->GetConfig()->port_name != portName) continue;
-
-                    return currentPort->Send(message);
-
-                }
-            } else {
-                capnp::MallocMessageBuilder builder;
-                auto intMessage = builder.initRoot<riaps::distrcoord::GroupInternals>();
-                auto grpMessage = intMessage.initGroupMessage();
-                grpMessage.setSourceComponentId(parent_component_id());
-
-                zframe_t* header;
-                zframe_t* content;
-
-                header << builder;
-                content << message;
-
-                // append() takes the ownership, zframe_t*, zmsg_t* will be destroyed after send();
-                zmsg_t* zmsg = zmsg_new();
-                zmsg_append(zmsg, &header);
-                zmsg_append(zmsg, &content);
-                return SendMessage(&zmsg, INTERNAL_PUB_NAME);
-            }
-
-            return false;
+        bool Group::SendMessageAsBytes(unsigned char *buffer, int len) {
+            capnp::MallocMessageBuilder builder;
+            riaps::distrcoord::GroupInternals::Builder int_message = builder.initRoot<riaps::distrcoord::GroupInternals>();
+            riaps::distrcoord::GroupMessage::Builder grp_message = int_message.initGroupMessage();
+            grp_message.setSourceComponentId(parent_component_id());
+            capnp::Data::Builder capnp_buffer(buffer, len);
+            grp_message.setMessage(capnp_buffer);
+            zmsg_t* zmsg = zmsg_new();
+            zmsg<<builder;
+            SendMessage(&zmsg, INTERNAL_PUB_NAME);
         }
+
+//        bool Group::SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName){
+//
+//            // If the port is not specified, send on the internal port
+//            if (portName != "") {
+//                for (auto it = group_ports_.begin(); it!=group_ports_.end(); it++){
+//                    auto currentPort = it->second->AsGroupPublishPort();
+//                    if (currentPort == nullptr) continue;
+//                    if (currentPort->GetConfig()->port_name != portName) continue;
+//
+//                    return currentPort->Send(message);
+//
+//                }
+//            } else {
+//                capnp::MallocMessageBuilder builder;
+//                auto intMessage = builder.initRoot<riaps::distrcoord::GroupInternals>();
+//                auto grpMessage = intMessage.initGroupMessage();
+//                grpMessage.setSourceComponentId(parent_component_id());
+//
+//                zframe_t* header;
+//                zframe_t* content;
+//
+//                header << builder;
+//                content << message;
+//
+//                // append() takes the ownership, zframe_t*, zmsg_t* will be destroyed after send();
+//                zmsg_t* zmsg = zmsg_new();
+//                zmsg_append(zmsg, &header);
+//                zmsg_append(zmsg, &content);
+//                return SendMessage(&zmsg, INTERNAL_PUB_NAME);
+//            }
+//
+//            return false;
+//        }
 
         bool Group::SendMessage(zmsg_t** message, const std::string& portName){
             for (auto it = group_ports_.begin(); it!=group_ports_.end(); it++){
@@ -295,7 +310,6 @@ namespace riaps{
                 if (currentPort->GetConfig()->port_name != portName) continue;
 
                 return currentPort->Send(message);
-
             }
 
             return false;
@@ -656,18 +670,21 @@ namespace riaps{
                 if (subscriberPort == group_subport_.get()){
                     //capnp::FlatArrayMessageReader reader(capnp_data);
 
-                    auto internal = frmReader.getRoot<riaps::distrcoord::GroupInternals>();
+                    riaps::distrcoord::GroupInternals::Reader internal = frmReader.getRoot<riaps::distrcoord::GroupInternals>();
                     if (internal.hasGroupMessage()) {
-                        // Read the content
-                        zframe_t* messageFrame;
-                        messageFrame = zmsg_pop(msg);
-                        if (messageFrame) {
-                            auto msgFrmPtr = std::shared_ptr<zframe_t>(messageFrame, [](zframe_t* z){zframe_destroy(&z);});
-                            (*messageFrame) >> frmReader;
-                            //frmReader = capnpReader;
-                            parent_component_->OnGroupMessage(group_id_, frmReader, nullptr);
-                            return;
-                        }
+                        auto grp_msg = internal.getGroupMessage();
+                        auto data = grp_msg.getMessage();
+                        OnGroupMessage(data);
+//                        // Read the content
+//                        zframe_t* messageFrame;
+//                        messageFrame = zmsg_pop(msg);
+//                        if (messageFrame) {
+//                            auto msgFrmPtr = std::shared_ptr<zframe_t>(messageFrame, [](zframe_t* z){zframe_destroy(&z);});
+//                            (*messageFrame) >> frmReader;
+//                            //frmReader = capnpReader;
+//                            parent_component_->OnGroupMessage(group_id_, frmReader, nullptr);
+//                            return;
+//                        }
                     }
                     else if (internal.hasGroupHeartBeat()) {
                         auto groupHeartBeat = internal.getGroupHeartBeat();
@@ -793,6 +810,7 @@ namespace riaps{
             return;
         }
 
+
         bool Group::SendVote(const std::string &propose_id, bool accept) {
             capnp::MallocMessageBuilder builder;
             auto msgInt = builder.initRoot<riaps::distrcoord::GroupInternals>();
@@ -808,6 +826,18 @@ namespace riaps{
             return SendInternalMessage(builder);
         }
 
+        void Group::OnGroupMessage(capnp::Data::Reader &data) {
+            zsock_send(notif_socket_.get(), "sb", ONGROUP_MESSAGE, data.begin(), data.size());
+        }
+
+        const GroupId& Group::group_id() {
+            return group_id_;
+        }
+
+        std::shared_ptr<spd::logger> Group::logger() {
+            return logger_;
+        }
+
         Group::~Group() {
 //            if (_lastFrame!= nullptr){
 //                zframe_destroy(&_lastFrame);
@@ -815,6 +845,57 @@ namespace riaps{
 //            }
             if (group_poller_ != nullptr)
                 zpoller_destroy(&group_poller_);
+        }
+
+        void group_actor (zsock_t *pipe, void *args) {
+            auto group        = (Group*)args;
+            auto group_id     = group->group_id();
+            auto logger       = group->logger();
+            auto component_id = group->parent_component_id();
+
+            if (!group->InitGroup()) {
+                logger->error("Couldn't init group: {}::{}", group_id.group_type_id, group_id.group_name);
+                return;
+            }
+
+            auto group_pub  = group->group_pubport();
+            auto group_sub  = group->group_subport();
+            auto pub_socket = group_pub->port_socket();
+            auto sub_socket = const_cast<zsock_t*>(group_sub->port_socket());
+
+            auto poller_ptr = unique_ptr<zpoller_t, function<void(zpoller_t*)>>(zpoller_new(pipe), [](zpoller_t* z){
+                zpoller_destroy(&z);
+            });
+            auto poller = poller_ptr.get();
+
+            zpoller_add(poller, sub_socket);
+
+            zpoller_set_nonstop(poller, true);
+            zsock_signal (pipe, 0);
+            bool terminated = false;
+            while (!terminated) {
+                void *which = zpoller_wait(poller, 10);
+
+                if (which == pipe) {
+                    zmsg_t *msg = zmsg_recv(which);
+                    if (!msg) {
+                        logger->warn("No msg => interrupted");
+                        break;
+                    }
+
+                    char *command = zmsg_popstr(msg);
+
+                    if (streq(command, "$TERM")) {
+                        logger->debug("$TERM arrived");
+                        terminated = true;
+                    }
+                    //} else if (which == sub_socket){
+
+                } else {
+                    group->SendPingWithPeriod();
+                    group->FetchNextMessage();
+                }
+            }
         }
     }
 }

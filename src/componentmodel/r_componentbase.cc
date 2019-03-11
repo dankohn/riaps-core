@@ -5,8 +5,6 @@
 
 using namespace std;
 
-
-
 namespace riaps{
 
     void component_actor(zsock_t* pipe, void* args){
@@ -317,15 +315,15 @@ namespace riaps{
                 // just poll timeout
             }
 
-            // Process group messages
-            if (!comp->groups_.empty()){
-
-                // Handle all group messages
-                for (auto& grp : comp->groups_){
-                    grp.second->SendPingWithPeriod();
-                    grp.second->FetchNextMessage();
-                }
-            }
+//            // Process group messages
+//            if (!comp->groups_.empty()){
+//
+//                // Handle all group messages
+//                for (auto& grp : comp->groups_){
+//                    grp.second->SendPingWithPeriod();
+//                    grp.second->FetchNextMessage();
+//                }
+//            }
         }
         zpoller_destroy(&poller);
         zsock_destroy(&timerportOneShot);
@@ -569,7 +567,7 @@ namespace riaps{
 
     bool ComponentBase::SendLeaderMessage(const riaps::groups::GroupId &groupId,
                                           capnp::MallocMessageBuilder &message) {
-        auto group = getGroupById(groupId);
+        auto group = GetGroupById(groupId);
         if (group == nullptr) return false;
         if (!IsLeader(group)) return false;
         return group->SendLeaderMessage(message);
@@ -656,19 +654,17 @@ namespace riaps{
         return query_port->SendQuery(message, requestId);
     }
 
-    bool ComponentBase::SendGroupMessage(const riaps::groups::GroupId &groupId,
+    void ComponentBase::SendGroupMessage(const riaps::groups::GroupId &groupId,
                                          capnp::MallocMessageBuilder &message,
                                          const std::string& portName) {
         // Search the group
-        if (groups_.find(groupId)==groups_.end()) return false;
+        if (groups_.find(groupId)==groups_.end()) return;
 
-        riaps::groups::Group* group = groups_[groupId].get();
-
-        return group->SendMessage(message, portName);
-
+        auto group = groups_[groupId].get();
+        send_group_message(group, message);
     }
 
-    bool ComponentBase::SendGroupMessage(const riaps::groups::GroupId&& groupId,
+    void ComponentBase::SendGroupMessage(const riaps::groups::GroupId&& groupId,
                                          capnp::MallocMessageBuilder &message,
                                          const std::string& portName) {
         return SendGroupMessage(groupId, message, portName);
@@ -677,12 +673,13 @@ namespace riaps{
 
     bool ComponentBase::SendMessageToLeader(const riaps::groups::GroupId &groupId,
                                             capnp::MallocMessageBuilder &message) {
-        auto group = getGroupById(groupId);
-        if (group == nullptr){
+        auto group_actor = GetGroupById(groupId);
+        if (group_actor == nullptr){
             return false;
         }
 
-        return group->SendMessageToLeader(message);
+
+        send_message_to_leader(group_actor,)
     }
 
     void ComponentBase::OnMessageFromLeader(const riaps::groups::GroupId &groupId,
@@ -690,10 +687,10 @@ namespace riaps{
         riaps_logger_->debug("Message from the leader arrived, but no OnMessageFromHandler() implementation has found in component: {}", component_config().component_name);
     }
 
-    riaps::groups::Group* ComponentBase::getGroupById(const riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId)==groups_.end()) return nullptr;
+    zactor_t* ComponentBase::GetGroupById(const riaps::groups::GroupId &group_id) {
+        if (groups_.find(group_id)==groups_.end()) return nullptr;
 
-        return groups_[groupId].get();
+        return groups_[group_id].get();
     }
 
 //    std::string ComponentBase::getTimerChannel() {
@@ -779,7 +776,7 @@ namespace riaps{
     }
 
     bool ComponentBase::IsLeader(const riaps::groups::GroupId &groupId) {
-        auto group = getGroupById(groupId);
+        auto group = GetGroupById(groupId);
         if (group == nullptr) return false;
         return IsLeader(group);
     }

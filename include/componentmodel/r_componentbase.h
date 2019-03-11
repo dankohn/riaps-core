@@ -16,6 +16,7 @@
 #include <componentmodel/r_oneshottimer.h>
 #include <componentmodel/r_payload.h>
 #include <groups/r_group.h>
+#include <groups/groupshell.h>
 #include <messaging/disco.capnp.h>
 
 #include <msgpack.hpp>
@@ -127,11 +128,11 @@ namespace riaps {
 
 
 
-        bool SendGroupMessage(const riaps::groups::GroupId& groupId,
+        void SendGroupMessage(const riaps::groups::GroupId& groupId,
                               capnp::MallocMessageBuilder& message,
                               const std::string& portName="");
 
-        bool SendGroupMessage(const riaps::groups::GroupId&& groupId,
+        void SendGroupMessage(const riaps::groups::GroupId&& groupId,
                               capnp::MallocMessageBuilder& message,
                               const std::string& portName="");
 
@@ -420,10 +421,9 @@ namespace riaps {
         // All the component ports
         std::unordered_map<std::string, std::unique_ptr<ports::PortBase>> ports_;
 
-        std::map<riaps::groups::GroupId,
-                 std::unique_ptr<riaps::groups::Group>> groups_;
+        std::map<riaps::groups::GroupId, std::unique_ptr<riaps::groups::Group>> groups_;
 
-        riaps::groups::Group* getGroupById(const riaps::groups::GroupId &groupId);
+        riaps::groups::Group* GetGroupById(const riaps::groups::GroupId &group_id);
 
         uint64_t timer_counter_;
 

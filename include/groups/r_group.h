@@ -34,6 +34,8 @@ namespace spd = spdlog;
 namespace riaps {
     namespace groups {
 
+        void group_actor (zsock_t *pipe, void *args);
+
         class GroupLead;
 
         /**
@@ -92,7 +94,7 @@ namespace riaps {
              * Initializes a group, by the given groupId
              * @param group_id Must have valid configuration entry with the matching id.
              */
-            Group(const GroupId& group_id, ComponentBase* parentComponent);
+            Group(const GroupDetails& group_details, bool has_leader, bool has_consensus);
 
             /**
              * Creates the communication ports and registers the group in the discovery service.
@@ -102,8 +104,9 @@ namespace riaps {
 
             void ConnectToNewServices(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
 
-            bool SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName);
-            bool SendMessage(zmsg_t** message, const std::string& portName);
+            bool SendMessageAsBytes(unsigned char* buffer, int len);
+            //bool SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName);
+
 
             bool SendInternalMessage(capnp::MallocMessageBuilder& message);
 
@@ -129,6 +132,9 @@ namespace riaps {
 
             std::shared_ptr<std::set<std::string>> GetKnownComponents();
 
+            std::shared_ptr<riaps::ports::GroupPublisherPort>    group_pubport();
+            std::shared_ptr<riaps::ports::GroupSubscriberPort>   group_subport();
+
             /**
              * Counts the records in _knownNodes map
              * Before counting, the DeleteTimeoutNodes() is called.
@@ -137,9 +143,16 @@ namespace riaps {
             uint16_t GetMemberCount();
 
             std::string leader_id() const;
+            const GroupId& group_id();
+            std::shared_ptr<spd::logger> logger();
+
 
             ~Group();
         private:
+
+            void OnGroupMessage(capnp::Data::Reader& data);
+
+            bool SendMessage(zmsg_t** message, const std::string& portName);
             /**
              * Delete records from the _knownNodes cache, it the Timer is exceeded
              * @return Number of deleted records.
@@ -147,8 +160,12 @@ namespace riaps {
             uint32_t DeleteTimeoutNodes();
             bool SendHeartBeat(riaps::distrcoord::HeartBeatType type);
 
+            GroupDetails group_details_;
+
             GroupId     group_id_;
             GroupTypeConf group_type_conf_;
+
+            unique_ptr<zsock_t, function<void(zsock_t*)>> notif_socket_;
 
             /**
              * Always store the communication ports in shart_ptr
@@ -184,6 +201,9 @@ namespace riaps {
             ComponentBase* parent_component_;
 
             std::unique_ptr<riaps::groups::GroupLead> group_leader_;
+            bool has_leader_;
+            bool has_consensus_;
+
         };
 
     }
