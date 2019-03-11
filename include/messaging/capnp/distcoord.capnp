@@ -38,6 +38,7 @@ struct LeaderElection {
 
 struct MessageToLeader {
     sourceComponentId @0 : Text;
+    message           @1 : Data;
 }
 
 struct LeaderMessage {
@@ -53,8 +54,9 @@ struct Consensus {
         proposeToClients  @3 : ProposeToClients;
         vote              @4 : Vote;
         announce          @5 : Announce;
+        tsyncCoordA       @6 : TimeSyncCoordA;
     }
-    tsyncCoordA       @6 : TimeSyncCoordA;
+    
 
     struct ProposeToLeader {
         proposeId @0 : Text;
@@ -92,6 +94,7 @@ struct Consensus {
 
 struct GroupMessage {
     sourceComponentId @0 : Text;
+    message           @1 : Data;
 }
 
 struct GroupInternals {

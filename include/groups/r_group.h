@@ -117,7 +117,8 @@ namespace riaps {
             bool SendPing();
             bool SendPong();
 
-            bool SendMessageToLeader(capnp::MallocMessageBuilder& message);
+            bool SendMessageToLeader(unsigned char* buffer, int len);
+            //bool SendMessageToLeader(capnp::MallocMessageBuilder& message);
             bool SendLeaderMessage(capnp::MallocMessageBuilder& message);
 
             bool ProposeValueToLeader(capnp::MallocMessageBuilder &message, const std::string &proposeId);

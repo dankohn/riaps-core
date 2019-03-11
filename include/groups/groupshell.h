@@ -13,8 +13,8 @@
 
 void join_group();
 void leave_group();
-void send_message_to_leader(void* zactor, void* message, int len);
-void send_message_to_leader(void* zactor, capnp::MallocMessageBuilder& message);
+void send_message_to_leader(void* group, unsigned char* message, int len);
+void send_message_to_leader(riaps::groups::Group* group, capnp::MallocMessageBuilder& message);
 void send_group_message(void* group, unsigned char* message, int len);
 void send_group_message(riaps::groups::Group* group, capnp::MallocMessageBuilder& message);
 void propose_value_to_leader();

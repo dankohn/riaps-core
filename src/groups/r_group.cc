@@ -137,25 +137,40 @@ namespace riaps{
             return SendMessage(message, INTERNAL_PUB_NAME);
         }
 
-        bool Group::SendMessageToLeader(capnp::MallocMessageBuilder &message) {
+        // bool Group::SendMessageToLeader(capnp::MallocMessageBuilder &message) {
+        //     if (leader_id() == "") return false;
+
+        //     zframe_t* frame;
+        //     frame << message;
+
+        //     capnp::MallocMessageBuilder builder;
+        //     auto msgGroupInternals = builder.initRoot<riaps::distrcoord::GroupInternals>();
+        //     auto msgHeader = msgGroupInternals.initMessageToLeader();
+        //     msgHeader.setSourceComponentId(parent_component()->ComponentUuid());
+
+        //     zframe_t* header;
+        //     header << builder;
+
+        //     zmsg_t* zmsg = zmsg_new();
+        //     zmsg_add(zmsg, header);
+        //     zmsg_add(zmsg, frame);
+
+        //     return SendMessage(&zmsg, INTERNAL_PUB_NAME);
+        // }
+
+        bool Group::SendMessageToLeader(unsigned char* buffer, int len) {
             if (leader_id() == "") return false;
 
-            zframe_t* frame;
-            frame << message;
-
             capnp::MallocMessageBuilder builder;
-            auto msgGroupInternals = builder.initRoot<riaps::distrcoord::GroupInternals>();
-            auto msgHeader = msgGroupInternals.initMessageToLeader();
-            msgHeader.setSourceComponentId(parent_component()->ComponentUuid());
-
-            zframe_t* header;
-            header << builder;
-
+            auto msg_group = builder.initRoot<riaps::distrcoord::GroupInternals>();
+            auto msg_to_leader = msg_group.initMessageToLeader();
+            msg_to_leader.setSourceComponentId(parent_component_id());
+            
+            capnp::Data::Builder capnp_buffer(buffer, len);
+            msg_to_leader.setMessage(capnp_buffer);
             zmsg_t* zmsg = zmsg_new();
-            zmsg_add(zmsg, header);
-            zmsg_add(zmsg, frame);
-
-            return SendMessage(&zmsg, INTERNAL_PUB_NAME);
+            zmsg<<builder;
+            SendMessage(&zmsg, INTERNAL_PUB_NAME);
         }
 
         bool Group::ProposeValueToLeader(capnp::MallocMessageBuilder &message, const std::string &proposeId) {
