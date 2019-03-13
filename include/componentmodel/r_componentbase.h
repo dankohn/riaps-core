@@ -69,6 +69,7 @@ namespace riaps {
 
     class ComponentBase {
         friend riaps::groups::Group;
+        friend void component_actor(zsock_t* pipe, void* args);
     public:
         ///////////////////// PYTHON PART ///////////////////////
         ComponentBase(const std::string &application_name, const std::string &actor_name);
@@ -96,7 +97,7 @@ namespace riaps {
 
         zactor_t* GetZmqPipe() const;
 
-        friend void component_actor(zsock_t* pipe, void* args);
+
 
         /**
          * @brief Sends capnp message on port.
@@ -344,7 +345,7 @@ namespace riaps {
 
         virtual void OnAnnounce(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accepted);
         std::string SendPropose(const riaps::groups::GroupId& groupId, capnp::MallocMessageBuilder& message);
-        bool SendVote(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accept);
+        bool SendVote(const riaps::groups::GroupId& group_id, const std::string& propose_id, bool accept);
 
         /**
          * Proposes an action to the leader.

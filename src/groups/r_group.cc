@@ -63,6 +63,11 @@ namespace riaps{
 
             random_generator_ = std::mt19937(random_device_());
             timeout_distribution_ = std::uniform_int_distribution<int>(PING_BASE_PERIOD*1.1, PING_BASE_PERIOD*2);
+
+            group_zactor_ = unique_ptr<zactor_t, function<void(zactor_t*)>>(zactor_new(group_actor, this),
+                                                                          [](zactor_t* z){
+                                                                              zactor_destroy(&z);
+                                                                          });
         }
 
         bool Group::InitGroup() {
@@ -133,9 +138,9 @@ namespace riaps{
             return group_subport_;
         }
 
-        bool Group::SendInternalMessage(capnp::MallocMessageBuilder &message) {
-            return SendMessage(message, INTERNAL_PUB_NAME);
-        }
+//        bool Group::SendInternalMessage(capnp::MallocMessageBuilder &message) {
+//            return SendMessage(message, INTERNAL_PUB_NAME);
+//        }
 
         // bool Group::SendMessageToLeader(capnp::MallocMessageBuilder &message) {
         //     if (leader_id() == "") return false;
@@ -168,9 +173,7 @@ namespace riaps{
             
             capnp::Data::Builder capnp_buffer(buffer, len);
             msg_to_leader.setMessage(capnp_buffer);
-            zmsg_t* zmsg = zmsg_new();
-            zmsg<<builder;
-            SendMessage(&zmsg, INTERNAL_PUB_NAME);
+            return SendMessage(builder);
         }
 
         bool Group::ProposeValueToLeader(capnp::MallocMessageBuilder &message, const std::string &proposeId) {
@@ -199,7 +202,7 @@ namespace riaps{
             zmsg_add(zmsg, header);
             zmsg_add(zmsg, frame);
 
-            bool rc = SendMessage(&zmsg, INTERNAL_PUB_NAME);
+            bool rc = SendMessage(&zmsg);
             if (!rc)
                 logger_->error("ProposeValueToLeader() failed");
             else
@@ -242,7 +245,7 @@ namespace riaps{
             zmsg_t* zmsg = zmsg_new();
             zmsg_add(zmsg, header);
 
-            bool rc = SendMessage(&zmsg, INTERNAL_PUB_NAME);
+            bool rc = SendMessage(&zmsg);
 
             if (!rc)
                 logger_->error("ProposeActionToLeader() failed");
@@ -269,19 +272,23 @@ namespace riaps{
             zframe_t* body;
             body << message;
             zmsg_add(zmsg, body);
-            return SendMessage(&zmsg, INTERNAL_PUB_NAME);
+            return SendMessage(&zmsg);
         }
 
-        bool Group::SendMessageAsBytes(unsigned char *buffer, int len) {
+        bool Group::SendGroupMessage(unsigned char *buffer, int len) {
             capnp::MallocMessageBuilder builder;
             riaps::distrcoord::GroupInternals::Builder int_message = builder.initRoot<riaps::distrcoord::GroupInternals>();
             riaps::distrcoord::GroupMessage::Builder grp_message = int_message.initGroupMessage();
             grp_message.setSourceComponentId(parent_component_id());
             capnp::Data::Builder capnp_buffer(buffer, len);
             grp_message.setMessage(capnp_buffer);
+            return SendMessage(builder);
+        }
+
+        bool Group::SendMessage(capnp::MallocMessageBuilder &builder) {
             zmsg_t* zmsg = zmsg_new();
             zmsg<<builder;
-            SendMessage(&zmsg, INTERNAL_PUB_NAME);
+            return SendMessage(&zmsg);
         }
 
 //        bool Group::SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName){
@@ -318,16 +325,17 @@ namespace riaps{
 //            return false;
 //        }
 
-        bool Group::SendMessage(zmsg_t** message, const std::string& portName){
-            for (auto it = group_ports_.begin(); it!=group_ports_.end(); it++){
-                auto currentPort = it->second->AsGroupPublishPort();
-                if (currentPort == nullptr) continue;
-                if (currentPort->GetConfig()->port_name != portName) continue;
-
-                return currentPort->Send(message);
-            }
-
-            return false;
+        bool Group::SendMessage(zmsg_t** message){
+            return group_pubport_->Send(message);
+//            for (auto it = group_ports_.begin(); it!=group_ports_.end(); it++){
+//                auto currentPort = it->second->AsGroupPublishPort();
+//                if (currentPort == nullptr) continue;
+//                if (currentPort->GetConfig()->port_name != portName) continue;
+//
+//                return currentPort->Send(message);
+//            }
+//
+//            return false;
         }
 
         std::shared_ptr<std::set<std::string>> Group::GetKnownComponents() {
@@ -838,7 +846,7 @@ namespace riaps{
             else
                 msgVote.setVoteResult(riaps::distrcoord::Consensus::VoteResults::REJECTED);
 
-            return SendInternalMessage(builder);
+            return SendMessage(builder);
         }
 
         void Group::OnGroupMessage(capnp::Data::Reader &data) {

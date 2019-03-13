@@ -678,8 +678,7 @@ namespace riaps{
             return false;
         }
 
-
-        send_message_to_leader(group_actor,)
+        return send_message_to_leader(group_actor, message);
     }
 
     void ComponentBase::OnMessageFromLeader(const riaps::groups::GroupId &groupId,
@@ -687,7 +686,7 @@ namespace riaps{
         riaps_logger_->debug("Message from the leader arrived, but no OnMessageFromHandler() implementation has found in component: {}", component_config().component_name);
     }
 
-    zactor_t* ComponentBase::GetGroupById(const riaps::groups::GroupId &group_id) {
+    riaps::groups::Group* ComponentBase::GetGroupById(const riaps::groups::GroupId &group_id) {
         if (groups_.find(group_id)==groups_.end()) return nullptr;
 
         return groups_[group_id].get();
@@ -732,10 +731,19 @@ namespace riaps{
     bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
         if (groups_.find(groupId)!=groups_.end())
             return false;
-        auto new_group = make_unique<riaps::groups::Group>(groupId, this);
+
+        auto new_group = join_group(groupId.group_type_id.c_str(),
+                groupId.group_name.c_str(),
+                ComponentUuid().c_str(),
+                actor()->application_name().c_str(),
+                0,
+                nullptr,
+                false,
+                false);
 
         if (new_group->InitGroup()) {
-            groups_[groupId] = std::move(new_group);
+            unique_ptr<riaps::groups::Group> ptr(new_group);
+            groups_[groupId] = std::move(ptr);
             return true;
         }
 
@@ -938,7 +946,7 @@ namespace riaps{
     }
 
     string ComponentBase::SendPropose(const riaps::groups::GroupId &groupId, capnp::MallocMessageBuilder &message) {
-        auto group = getGroupById(groupId);
+        auto group = GetGroupById(groupId);
         if (group == nullptr) return "";
 
         auto uuid = unique_ptr<zuuid_t, function<void(zuuid_t*)>>(zuuid_new(), [](zuuid_t* u){zuuid_destroy(&u);});
@@ -953,7 +961,7 @@ namespace riaps{
     string ComponentBase::ProposeAction(const riaps::groups::GroupId &groupId,
                                         const std::string &actionId,
                                         const timespec &absTime) {
-        auto group = getGroupById(groupId);
+        auto group = GetGroupById(groupId);
         if (group == nullptr) return "";
 
         auto uuid = unique_ptr<zuuid_t, function<void(zuuid_t*)>>(zuuid_new(), [](zuuid_t* u){zuuid_destroy(&u);});
@@ -965,11 +973,11 @@ namespace riaps{
         return "";
     }
 
-    bool ComponentBase::SendVote(const riaps::groups::GroupId &groupId, const std::string &proposeId, bool accept) {
-        auto group = getGroupById(groupId);
+    bool ComponentBase::SendVote(const riaps::groups::GroupId &group_id, const std::string &propose_id, bool accept) {
+        auto group = GetGroupById(group_id);
         if (group == nullptr) return false;
 
-        return group->SendVote(proposeId, accept);
+        return send_vote(group, propose_id.c_str(), accept);
     }
 
     void ComponentBase::UpdateGroup(riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {

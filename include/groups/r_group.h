@@ -88,6 +88,7 @@ namespace riaps {
          *  - Sends messages
          */
         class Group final {
+            friend void group_actor (zsock_t *pipe, void *args);
         public:
 
             /**
@@ -104,11 +105,11 @@ namespace riaps {
 
             void ConnectToNewServices(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
 
-            bool SendMessageAsBytes(unsigned char* buffer, int len);
-            //bool SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName);
+            bool SendGroupMessage(unsigned char* buffer, int len);
 
 
-            bool SendInternalMessage(capnp::MallocMessageBuilder& message);
+
+
 
             //ports::GroupSubscriberPort* FetchNextMessage(std::shared_ptr<capnp::FlatArrayMessageReader>& messageReader);
             void FetchNextMessage();
@@ -122,7 +123,7 @@ namespace riaps {
             bool SendLeaderMessage(capnp::MallocMessageBuilder& message);
 
             bool ProposeValueToLeader(capnp::MallocMessageBuilder &message, const std::string &proposeId);
-            bool SendVote(const std::string& propose_id, bool accept);
+
 
             bool ProposeActionToLeader(const std::string& proposeId,
                                        const std::string &actionId,
@@ -147,13 +148,20 @@ namespace riaps {
             const GroupId& group_id();
             std::shared_ptr<spd::logger> logger();
 
+            bool SendMessage(capnp::MallocMessageBuilder& builder);
+            bool SendMessage(zmsg_t** message);
+
+            bool SendVote(const std::string& propose_id, bool accept);
 
             ~Group();
         private:
 
             void OnGroupMessage(capnp::Data::Reader& data);
 
-            bool SendMessage(zmsg_t** message, const std::string& portName);
+
+
+
+
             /**
              * Delete records from the _knownNodes cache, it the Timer is exceeded
              * @return Number of deleted records.
@@ -166,7 +174,8 @@ namespace riaps {
             GroupId     group_id_;
             GroupTypeConf group_type_conf_;
 
-            unique_ptr<zsock_t, function<void(zsock_t*)>> notif_socket_;
+            std::unique_ptr<zsock_t, std::function<void(zsock_t*)>> notif_socket_;
+            std::unique_ptr<zactor_t, std::function<void(zactor_t*)>> group_zactor_;
 
             /**
              * Always store the communication ports in shart_ptr
