@@ -4,7 +4,12 @@
 #ifndef RIAPS_FW_GROUPCOMP_H
 #define RIAPS_FW_GROUPCOMP_H
 
-#include "GroupCompBase.h"
+
+#include "base/GroupCompBase.h"
+
+constexpr auto GROUP_TYPE_GROUPA = "groupA";
+constexpr auto GROUP_TYPE_GROUPB = "groupB";
+
 
 namespace grouptest {
   namespace components {
@@ -12,9 +17,16 @@ namespace grouptest {
     class GroupComp : public GroupCompBase {
 
     public:
-      GroupComp(_component_conf &config, riaps::Actor &actor);
+      GroupComp(const py::object *parent_actor,
+                const py::dict actor_spec, // Actor json config
+                const py::dict type_spec,  // component json config
+                const std::string &name,
+                const std::string &type_name,
+                const py::dict args,
+                const std::string &application_name,
+                const std::string &actor_name);
 
-      virtual void OnClock(riaps::ports::PortBase *port);
+      virtual void OnClock() override;
 
       void OnGroupMessage(const riaps::groups::GroupId &groupId,
                           capnp::FlatArrayMessageReader &capnpreader,
@@ -32,8 +44,14 @@ namespace grouptest {
   } // namespace components
 } // namespace grouptest
 
-extern "C" riaps::ComponentBase *create_component(_component_conf &,
-                                                  riaps::Actor &actor);
-extern "C" void destroy_component(riaps::ComponentBase *);
+std::unique_ptr<grouptest::components::GroupComp>
+create_component_py(const py::object *parent_actor,
+                    const py::dict actor_spec,
+                    const py::dict type_spec,
+                    const std::string &name,
+                    const std::string &type_name,
+                    const py::dict args,
+                    const std::string &application_name,
+                    const std::string &actor_name);
 
 #endif // RIAPS_FW_GROUPCOMP_H

@@ -23,11 +23,11 @@ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 include_directories(include)
 
 # Creating Libraries for Component edu.vanderbilt.riaps.app.impl.ComponentImpl@3b12207e (name: GroupComp) (language: python, realtime: false)
-pybind11_add_module(groupcomp
-			SHARED ${CMAKE_CURRENT_SOURCE_DIR}/cpp/GroupComp.cc
-			${CMAKE_CURRENT_SOURCE_DIR}/cpp/GroupCompBase.cc
+pybind11_add_module(groupcomp src/GroupComp.cc
+			                  src/base/GroupCompBase.cc
+								include/messages/MessageType.capnp.c++
 			)
 			
-target_link_libraries(groupcomp czmq riaps dl capnp kj)
-install(TARGETS groupcomp DESTINATION lib)
+target_link_libraries(groupcomp PRIVATE czmq riaps dl capnp kj)
+set_target_properties(groupcomp PROPERTIES PREFIX lib SUFFIX .so)
 
