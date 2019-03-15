@@ -51,4 +51,11 @@ constexpr auto J_GROUP_LEADER    = "leader";
 constexpr auto J_GROUP_CONSENSUS = "consensus";
 constexpr auto J_GROUP_MESSAGES  = "groupMessages";
 
+constexpr auto J_GROUP_NAME           = "name";
+constexpr auto J_GROUP_KIND           = "kind";
+constexpr auto J_GROUP_KIND_DEFAULT   = "default";
+constexpr auto J_GROUP_KIND_LEADER    = "leader";
+constexpr auto J_GROUP_KIND_CONSENSUS = "consensus";
+
+
 #endif //RIAPS_CORE_R_JSONMODEL_H_H
