@@ -10,10 +10,11 @@ namespace py = pybind11;
 
 class PyConfigConverter {
 public:
-    static ComponentConf convert(const py::dict& py_comp_config, const py::dict& py_actor) {
+    static ComponentConf convert(const py::dict& py_comp_config, const py::dict& py_actor, const py::dict& py_groups) {
         ComponentConf result;
         result.is_device = false;
         ParseLocals(py_actor);
+        ParseGroupTypes(py_groups, result);
         auto json_ports  = py_comp_config[J_PORTS];
         auto json_pubs  = json_ports[J_PORTS_PUBS].cast<py::dict>();
         auto json_subs  = json_ports[J_PORTS_SUBS].cast<py::dict>();
@@ -39,6 +40,10 @@ private:
         for (auto it = json_locals.begin(); it!=json_locals.end(); it++){
             locals_.insert(it->cast<py::dict>()["type"].cast<std::string>());
         }
+    }
+
+    static void ParseGroupTypes(const py::dict& py_groups, ComponentConf& result) {
+        
     }
 
     static bool IsLocal(const std::string& message_type) {
