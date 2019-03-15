@@ -108,7 +108,6 @@ struct groupt_ports {
  */
 struct GroupTypeConf {
     std::string   group_type_id;
-    //groupt_ports  group_type_ports;
     bool          has_leader;
     bool          has_consensus;
 };
@@ -119,6 +118,7 @@ struct ComponentConf {
     std::string               component_type;
     ComponentPorts            component_ports;
     Parameters                component_parameters;
+    std::map<std::string, GroupTypeConf> group_types;
     bool                      is_device;
 };
 

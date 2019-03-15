@@ -10,10 +10,11 @@ namespace py = pybind11;
 
 class PyConfigConverter {
 public:
-    static ComponentConf convert(const py::dict& py_comp_config, const py::dict& py_actor) {
+    static ComponentConf convert(const py::dict& py_comp_config, const py::dict& py_actor, const py::list& py_groups) {
         ComponentConf result;
         result.is_device = false;
         ParseLocals(py_actor);
+        ParseGroupTypes(py_groups, result);
         auto json_ports  = py_comp_config[J_PORTS];
         auto json_pubs  = json_ports[J_PORTS_PUBS].cast<py::dict>();
         auto json_subs  = json_ports[J_PORTS_SUBS].cast<py::dict>();
@@ -38,6 +39,20 @@ private:
         auto json_locals = py_actor[J_LOCALS];
         for (auto it = json_locals.begin(); it!=json_locals.end(); it++){
             locals_.insert(it->cast<py::dict>()["type"].cast<std::string>());
+        }
+    }
+
+    static void ParseGroupTypes(const py::list& py_groups, ComponentConf& result) {
+        for (auto g : py_groups) {
+            GroupTypeConf gtc;
+            gtc.group_type_id = g[J_GROUP_NAME].cast<std::string>();
+            auto kind = g[J_GROUP_KIND].cast<std::string>();
+            if (kind!=J_GROUP_KIND_DEFAULT) {
+                gtc.has_leader = true;
+                gtc.has_consensus = kind == J_GROUP_CONSENSUS;
+            } else {
+                gtc.has_leader = gtc.has_consensus = false;
+            }
         }
     }
 
