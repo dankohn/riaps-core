@@ -1,19 +1,25 @@
 {
   "name": "Grouptest",
-  "groups": {
-    "groupB": {
-      "leader": false,
-      "consensus": true,
-      "groupMessages": [],
-      "consensusMessages": []
+  "groups":[
+    {
+      "name": "groupA",
+      "kind": "default",
+      "messages":[
+        {
+          "type": "MsgType1"
+        }
+      ]
     },
-    "groupA": {
-      "leader": false,
-      "consensus": true,
-      "groupMessages": [],
-      "consensusMessages": []
+    {
+      "name": "groupB",
+      "kind": "default",
+      "messages":[
+        {
+          "type": "MsgTypeB"
+        }
+      ]
     }
-  },
+  ],
   "devices": {},
   "components": {
     "GroupComp": {
