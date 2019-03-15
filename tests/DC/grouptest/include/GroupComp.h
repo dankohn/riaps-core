@@ -20,6 +20,7 @@ namespace grouptest {
       GroupComp(const py::object *parent_actor,
                 const py::dict actor_spec, // Actor json config
                 const py::dict type_spec,  // component json config
+                const py::list group_spec,
                 const std::string &name,
                 const std::string &type_name,
                 const py::dict args,
@@ -35,11 +36,11 @@ namespace grouptest {
       virtual ~GroupComp();
 
     private:
-        bool m_joinedToA;
-        bool m_joinedToB;
+        bool joined_to_a_;
+        bool joined_to_b_;
 
-        riaps::groups::GroupId m_publicGroupId;
-        riaps::groups::GroupId m_uniqueGroupId;
+        riaps::groups::GroupId public_group_id_;
+        riaps::groups::GroupId unique_group_id_;
     };
   } // namespace components
 } // namespace grouptest
@@ -48,6 +49,7 @@ std::unique_ptr<grouptest::components::GroupComp>
 create_component_py(const py::object *parent_actor,
                     const py::dict actor_spec,
                     const py::dict type_spec,
+                    const py::list group_spec,
                     const std::string &name,
                     const std::string &type_name,
                     const py::dict args,

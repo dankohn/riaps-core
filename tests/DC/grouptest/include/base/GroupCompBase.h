@@ -28,6 +28,7 @@ namespace grouptest {
          GroupCompBase(const py::object *parent_actor,
                        const py::dict actor_spec, // Actor json config
                        const py::dict type_spec,  // component json config
+                       const py::list group_spec,
                        const std::string &name,
                        const std::string &type_name,
                        const py::dict args,

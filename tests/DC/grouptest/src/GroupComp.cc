@@ -9,48 +9,49 @@ namespace grouptest {
     GroupComp::GroupComp(const py::object *parent_actor,
                          const py::dict actor_spec, // Actor json config
                          const py::dict type_spec,  // component json config
+                         const py::list group_spec,
                          const std::string &name,
                          const std::string &type_name,
                          const py::dict args,
                          const std::string &application_name,
                          const std::string &actor_name)
-            : GroupCompBase(parent_actor, actor_spec, type_spec, name, type_name, args, application_name,
-                                 actor_name), m_joinedToA(false), m_joinedToB(false) {
+            : GroupCompBase(parent_actor, actor_spec, type_spec, group_spec, name, type_name, args, application_name,
+                                 actor_name), joined_to_a_(false), joined_to_b_(false) {
 
       auto uid = zuuid_new();
       string uidStr = zuuid_str(uid);
       zuuid_destroy(&uid);
 
-      m_publicGroupId = GroupId{GROUP_TYPE_GROUPA, "PublicGroup"};
-      m_uniqueGroupId = GroupId{GROUP_TYPE_GROUPB, uidStr};
+      public_group_id_ = GroupId{GROUP_TYPE_GROUPA, "PublicGroup"};
+      unique_group_id_ = GroupId{GROUP_TYPE_GROUPB, uidStr};
     }
 
     void GroupComp::OnClock() {
       auto _logger = component_logger();
-      if (!m_joinedToA) {
-        _logger->info("Component joins to {}:{}", m_publicGroupId.group_type_id, m_publicGroupId.group_name);
-        auto joined = JoinGroup(m_publicGroupId);
+      if (!joined_to_a_) {
+        _logger->info("Component joins to {}:{}", public_group_id_.group_type_id, public_group_id_.group_name);
+        auto joined = JoinGroup(public_group_id_);
         if (joined){
-          m_joinedToA = true;
+          joined_to_a_ = true;
         } else {
-            _logger->error("Couldn't join to group {}:{}", m_publicGroupId.group_type_id, m_publicGroupId.group_name);
+            _logger->error("Couldn't join to group {}:{}", public_group_id_.group_type_id, public_group_id_.group_name);
         }
         
       } else {
-        auto count = GetGroupMemberCount(m_publicGroupId);
+        auto count = GetGroupMemberCount(public_group_id_);
         _logger->info("Number of members in groupA (including the current node): {}", count+1);
       }
 
-      if (!m_joinedToB) {
-        _logger->info("Component joins to {}:{}", m_uniqueGroupId.group_type_id, m_uniqueGroupId.group_name);
-        auto joined = JoinGroup(m_uniqueGroupId);
+      if (!joined_to_b_) {
+        _logger->info("Component joins to {}:{}", unique_group_id_.group_type_id, unique_group_id_.group_name);
+        auto joined = JoinGroup(unique_group_id_);
         if (joined){
-          m_joinedToB = true;
+          joined_to_b_ = true;
         } else {
-            _logger->error("Couldn't join to group {}:{}", m_uniqueGroupId.group_type_id, m_uniqueGroupId.group_name);
+            _logger->error("Couldn't join to group {}:{}", unique_group_id_.group_type_id, unique_group_id_.group_name);
         }
       } else {
-        auto count = GetGroupMemberCount(m_uniqueGroupId);
+        auto count = GetGroupMemberCount(unique_group_id_);
         _logger->info("Number of members in groupB (including the current node): {}", count+1);
       }
     }
@@ -67,12 +68,13 @@ std::unique_ptr<grouptest::components::GroupComp>
 create_component_py(const py::object *parent_actor,
                     const py::dict actor_spec,
                     const py::dict type_spec,
+                    const py::list group_spec,
                     const std::string &name,
                     const std::string &type_name,
                     const py::dict args,
                     const std::string &application_name,
                     const std::string &actor_name) {
-    auto ptr = new grouptest::components::GroupComp(parent_actor, actor_spec, type_spec, name, type_name, args,
+    auto ptr = new grouptest::components::GroupComp(parent_actor, actor_spec, type_spec, group_spec, name, type_name, args,
                                                                     application_name,
                                                                     actor_name);
     return std::move(std::unique_ptr<grouptest::components::GroupComp>(ptr));
@@ -80,7 +82,7 @@ create_component_py(const py::object *parent_actor,
 
 PYBIND11_MODULE(libgroupcomp, m) {
     py::class_<grouptest::components::GroupComp> testClass(m, "GroupComp");
-    testClass.def(py::init<const py::object*, const py::dict, const py::dict, const std::string&, const std::string&, const py::dict, const std::string&, const std::string&>());
+    testClass.def(py::init<const py::object*, const py::dict, const py::dict, const py::list, const std::string&, const std::string&, const py::dict, const std::string&, const std::string&>());
 
     testClass.def("setup"                 , &grouptest::components::GroupComp::Setup);
     testClass.def("activate"              , &grouptest::components::GroupComp::Activate);
@@ -93,6 +95,7 @@ PYBIND11_MODULE(libgroupcomp, m) {
     testClass.def("handleNICStateChange"  , &grouptest::components::GroupComp::HandleNICStateChange);
     testClass.def("handlePeerStateChange" , &grouptest::components::GroupComp::HandlePeerStateChange);
     testClass.def("handleReinstate"       , &grouptest::components::GroupComp::HandleReinstate);
+    testClass.def("handleGroupUpdate"     , &grouptest::components::GroupComp::HandleGroupUpdate);
 
     m.def("create_component_py", &create_component_py, "Instantiates the component from python configuration");
 }

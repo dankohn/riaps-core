@@ -13,13 +13,14 @@ namespace grouptest {
        GroupCompBase::GroupCompBase(const py::object *parent_actor,
                                     const py::dict actor_spec, // Actor json config
                                     const py::dict type_spec,  // component json config
+                                    const py::list group_spec,
                                     const std::string &name,
                                     const std::string &type_name,
                                     const py::dict args,
                                     const std::string &application_name,
                                     const std::string &actor_name)
                : ComponentBase(application_name, actor_name) {
-           auto conf = PyConfigConverter::convert(type_spec, actor_spec);
+           auto conf = PyConfigConverter::convert(type_spec, actor_spec, group_spec);
            conf.component_name = name;
            conf.component_type = type_name;
            conf.is_device = false;
