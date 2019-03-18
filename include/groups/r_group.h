@@ -26,9 +26,6 @@
 #include <chrono>
 #include <set>
 
-
-
-
 namespace spd = spdlog;
 
 namespace riaps {
@@ -149,6 +146,7 @@ namespace riaps {
 
             std::string leader_id() const;
             const GroupId& group_id();
+            const std::string& component_id() const;
             std::shared_ptr<spd::logger> logger();
 
             bool SendMessage(capnp::MallocMessageBuilder& builder);
@@ -171,7 +169,7 @@ namespace riaps {
                                    bool accepted);
 
             void ForwardOnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
-            void ForwardOnPropose(riaps::groups::GroupId& groupId, const std::string& proposeId, capnp::FlatArrayMessageReader& message);
+            void ForwardOnPropose(const riaps::groups::GroupId& groupId, const std::string& proposeId, capnp::FlatArrayMessageReader& message);
 
 
 

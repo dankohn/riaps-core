@@ -68,6 +68,7 @@ namespace riaps{
 
             // TODO: what is the logger id here?
             logger_ = spd::get(component_id);
+            assert(logger_!=nullptr);
             ping_timeout_ = Timeout<std::chrono::milliseconds>(PING_BASE_PERIOD);
 
             random_generator_ = std::mt19937(random_device_());
@@ -228,7 +229,7 @@ namespace riaps{
             else
                 logger_->debug("ProposeValueToLeader() proposeId: {}, leader_id: {}, srcComp: {}", proposeId,
                                leader_id(),
-                               parent_component_id());
+                               component_id_);
             return rc;
         }
 
@@ -884,6 +885,10 @@ namespace riaps{
             return logger_;
         }
 
+        const std::string& Group::component_id() const {
+            return component_id_;
+        }
+
         Group::~Group() {
 //            if (_lastFrame!= nullptr){
 //                zframe_destroy(&_lastFrame);
@@ -897,7 +902,7 @@ namespace riaps{
             auto group        = (Group*)args;
             auto group_id     = group->group_id();
             auto logger       = group->logger();
-            auto component_id = group->parent_component_id();
+            auto component_id = group->component_id();
 
             if (!group->InitGroup()) {
                 logger->error("Couldn't init group: {}::{}", group_id.group_type_id, group_id.group_name);

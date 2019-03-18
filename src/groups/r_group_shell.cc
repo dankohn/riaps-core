@@ -64,16 +64,27 @@ bool send_message_to_leader(riaps::groups::Group* group, capnp::MallocMessageBui
 
 riaps::groups::Group* join_group(const char* group_type,
                                  const char* group_name,
-                                 const char* component_id,
                                  const char* application_name,
+                                 const char* actor_name,
+                                 const char* component_id,
                                  bool   has_consensus,
-                                 bool   has_leader) {
+                                 bool   has_leader,
+                                 bool   has_security) {
     riaps::groups::GroupId gid;
     gid.group_type_id = group_type;
     gid.group_name = group_name;
 
+    GroupTypeConf gtc;
+    gtc.group_type_id = gid.group_type_id;
+    gtc.has_consensus = has_consensus;
+    gtc.has_leader  = has_leader;
 
-    auto new_group = new Group(gd, has_leader, has_consensus);
+    auto new_group = new Group(gid,
+                               gtc,
+                               application_name,
+                               actor_name,
+                               component_id,
+                               has_security);
 
     if (new_group->InitGroup()) {
         return new_group;

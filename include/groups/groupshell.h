@@ -18,10 +18,12 @@ namespace riaps {
 
 riaps::groups::Group* join_group(const char* group_type,
                                  const char* group_name,
-                                 const char* component_id,
                                  const char* application_name,
-                                 bool has_consensus,
-                                 bool has_leader);
+                                 const char* actor_name,
+                                 const char* component_id,
+                                 bool   has_consensus,
+                                 bool   has_leader,
+                                 bool   has_security);
 
 void leave_group(riaps::groups::Group* group);
 
