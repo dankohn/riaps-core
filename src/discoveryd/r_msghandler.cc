@@ -758,9 +758,9 @@ namespace riaps{
     }
 
     void DiscoveryMessageHandler::PushDhtValuesToDisco(std::vector<DhtData>&& values) {
-        zsock_t *dhtNotificationSocket = zsock_new_push(DHT_RESULT_CHANNEL);
-        zsock_set_linger(dhtNotificationSocket, 0);
-        zsock_set_sndtimeo(dhtNotificationSocket, 0);
+        zsock_t *dht_notification_socket = zsock_new_push(DHT_RESULT_CHANNEL);
+        zsock_set_linger(dht_notification_socket, 0);
+        zsock_set_sndtimeo(dht_notification_socket, 0);
 
 
         // Let's unpack the data
@@ -772,33 +772,35 @@ namespace riaps{
 
             riaps::groups::GroupDetails v = dht::unpackMsg<riaps::groups::GroupDetails>(value.raw_data);
 
-            capnp::MallocMessageBuilder dhtMessage;
-            auto msgDhtUpdate = dhtMessage.initRoot<riaps::discovery::DhtUpdate>();
-            auto msgGroupUpdate = msgDhtUpdate.initGroupUpdate();
-            msgGroupUpdate.setComponentId(v.component_id);
-            msgGroupUpdate.setAppName(v.app_name);
+            capnp::MallocMessageBuilder dht_message;
+            auto msg_dht_update = dht_message.initRoot<riaps::discovery::DhtUpdate>();
+            auto msg_group_update = msg_dht_update.initGroupUpdate();
+            msg_group_update.setComponentId(v.component_id);
+            msg_group_update.setAppName(v.app_name);
 
-            auto groupId = msgGroupUpdate.initGroupId();
-            groupId.setGroupName(v.group_id.group_name);
-            groupId.setGroupType(v.group_id.group_type_id);
+            auto group_id = msg_group_update.initGroupId();
+            group_id.setGroupName(v.group_id.group_name);
+            group_id.setGroupType(v.group_id.group_type_id);
 
-            auto groupServices = msgGroupUpdate.initServices(v.group_services.size());
+            auto group_services = msg_group_update.initServices(v.group_services.size());
             for (int i = 0; i<v.group_services.size(); i++){
-                groupServices[i].setAddress(v.group_services[i].address);
-                groupServices[i].setMessageType(v.group_services[i].message_type);
+                group_services[i].setAddress(v.group_services[i].address);
+                group_services[i].setMessageType(v.group_services[i].message_type);
             }
+            
+            // Changing the protocoll, send just one address
+            msg_group_update.setMemberAddress(v.group_services[0].address);
 
-            auto serializedMessage = capnp::messageToFlatArray(dhtMessage);
+            auto serialized_message = capnp::messageToFlatArray(dht_message);
 
             zmsg_t *msg = zmsg_new();
-            auto bytes = serializedMessage.asBytes();
+            auto bytes = serialized_message.asBytes();
             zmsg_pushmem(msg, bytes.begin(), bytes.size());
-            zmsg_send(&msg, dhtNotificationSocket);
-            //std::cout << "[DHT] Group notifications sent to discovery service" << std::endl;
+            zmsg_send(&msg, dht_notification_socket);
         }
 
         zclock_sleep(100);
-        zsock_destroy(&dhtNotificationSocket);
+        zsock_destroy(&dht_notification_socket);
     }
 
     // Handle ZMQ messages, arriving on the zactor PIPE

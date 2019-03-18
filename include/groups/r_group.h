@@ -95,7 +95,12 @@ namespace riaps {
              * Initializes a group, by the given groupId
              * @param group_id Must have valid configuration entry with the matching id.
              */
-            Group(const GroupDetails& group_details, bool has_leader, bool has_consensus);
+            Group(const GroupId& group_id,
+                  const GroupTypeConf& config,
+                  const std::string& application_name,
+                  const std::string& actor_name,
+                  const std::string& component_id,
+                  bool  has_security);
 
             /**
              * Creates the communication ports and registers the group in the discovery service.
@@ -103,7 +108,8 @@ namespace riaps {
              */
             bool InitGroup();
 
-            void ConnectToNewServices(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
+            //void ConnectToNewServices(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
+            void ConnectToNewServices(std::string address);
 
             bool SendGroupMessage(unsigned char* buffer, int len);
 
@@ -128,9 +134,6 @@ namespace riaps {
             bool ProposeActionToLeader(const std::string& proposeId,
                                        const std::string &actionId,
                                        const timespec &absTime);
-
-            const ComponentBase* parent_component() const;
-            const std::string parent_component_id() const;
 
             std::shared_ptr<std::set<std::string>> GetKnownComponents();
 
@@ -158,6 +161,17 @@ namespace riaps {
 
             void OnGroupMessage(capnp::Data::Reader& data);
 
+            void ForwardOnActionPropose(const riaps::groups::GroupId& groupId,
+                                        const std::string& proposeId,
+                                        const std::string& actionId,
+                                        const timespec& timePoint);
+
+            void ForwardOnAnnounce(const riaps::groups::GroupId& groupId,
+                                   const std::string& proposeId,
+                                   bool accepted);
+
+            void ForwardOnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
+            void ForwardOnPropose(riaps::groups::GroupId& groupId, const std::string& proposeId, capnp::FlatArrayMessageReader& message);
 
 
 
@@ -169,10 +183,13 @@ namespace riaps {
             uint32_t DeleteTimeoutNodes();
             bool SendHeartBeat(riaps::distrcoord::HeartBeatType type);
 
-            GroupDetails group_details_;
 
-            GroupId     group_id_;
-            GroupTypeConf group_type_conf_;
+            const GroupId     group_id_;
+            const GroupTypeConf group_type_conf_;
+            const std::string actor_name_;
+            const std::string application_name_;
+            const std::string component_id_;
+            const bool has_security_;
 
             std::unique_ptr<zsock_t, std::function<void(zsock_t*)>> notif_socket_;
             std::unique_ptr<zactor_t, std::function<void(zactor_t*)>> group_zactor_;
@@ -208,11 +225,9 @@ namespace riaps {
             std::mt19937         random_generator_;
             std::uniform_int_distribution<int> timeout_distribution_;
 
-            ComponentBase* parent_component_;
-
             std::unique_ptr<riaps::groups::GroupLead> group_leader_;
-            bool has_leader_;
-            bool has_consensus_;
+            bool has_leader();
+            bool has_consensus();
 
         };
 

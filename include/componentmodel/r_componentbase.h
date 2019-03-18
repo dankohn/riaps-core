@@ -77,6 +77,11 @@ namespace riaps {
         virtual void Setup() final;
         virtual void Activate() final;
         virtual void HandlePortUpdate(const std::string &port_name, const std::string &host, int port) final;
+        virtual void HandleGroupUpdate(const std::string&        app_name,
+                                       const std::string&        group_type,
+                                       const std::string&        group_name,
+                                       const std::string&        component_id,
+                                       std::vector<std::string>& addresses) final;
         virtual void HandleReinstate() final;
 
         /**
@@ -141,7 +146,8 @@ namespace riaps {
 
 
 
-        void UpdateGroup(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
+        //void UpdateGroup(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
+        void UpdateGroup(riaps::groups::GroupId& group_id, const std::string& address);
 
 
         /**
@@ -334,15 +340,21 @@ namespace riaps {
         std::vector<riaps::groups::GroupId> GetGroupMembershipsByType(const std::string& groupType);
         bool IsMemberOf(riaps::groups::GroupId& groupId);
 
+        // Depricated!
         virtual void OnPropose (riaps::groups::GroupId& groupId, const std::string& proposeId, capnp::FlatArrayMessageReader& message);
+
+        // Depricated!
         virtual void OnActionPropose (riaps::groups::GroupId& groupId,
                                       const std::string& proposeId,
                                       const std::string& actionId,
                                       const timespec& timePoint);
 
         virtual void OnMessageToLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
+
+        // Depricated
         virtual void OnMessageFromLeader(const riaps::groups::GroupId& groupId, capnp::FlatArrayMessageReader& message);
 
+        // Depricated!
         virtual void OnAnnounce(const riaps::groups::GroupId& groupId, const std::string& proposeId, bool accepted);
         std::string SendPropose(const riaps::groups::GroupId& groupId, capnp::MallocMessageBuilder& message);
         bool SendVote(const riaps::groups::GroupId& group_id, const std::string& propose_id, bool accept);

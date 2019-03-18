@@ -77,6 +77,7 @@ if (BUILD_TESTS)
     #add_subdirectory(tests/testPubSub/test_1_1/test_1_1)
     #add_subdirectory(tests/ScheduledTimer)
     #add_subdirectory(examples/Limits)
+    add_subdirectory(tests/DC/grouptest)
     #add_subdirectory(tests/DC/groupmsgtest)
     #add_subdirectory(tests/DC/groupleavetest)
     #add_subdirectory(tests/DC/leaderwithone)
@@ -100,7 +101,6 @@ list (APPEND riapslib_SOURCE
         src/componentmodel/ports/r_insideport.cc
         src/componentmodel/ports/r_periodictimer.cc
         src/componentmodel/ports/r_portbase.cc
-        src/componentmodel/ports/r_porterror.cc
         src/componentmodel/ports/r_publisherport.cc
         src/componentmodel/ports/r_pubportbase.cc
         src/componentmodel/ports/r_pubportgroup.cc

@@ -20,8 +20,6 @@ riaps::groups::Group* join_group(const char* group_type,
                                  const char* group_name,
                                  const char* component_id,
                                  const char* application_name,
-                                 int   message_tpyesc,
-                                 char** message_typesv,
                                  bool has_consensus,
                                  bool has_leader);
 

@@ -178,18 +178,21 @@ namespace riaps{
                 }
                 // Forward group update messages
                 else if(streq(command, CMD_UPDATE_GROUP)){
-                    zframe_t* capnp_msgbody = zmsg_pop(msg);
-                    size_t    size = zframe_size(capnp_msgbody);
-                    unsigned char* data = zframe_data(capnp_msgbody);
+                    char** group_type, group_name, service;
+                    zsock_recv(pipe, "sss", group_type, group_name, service);
 
-                    auto capnp_data = kj::arrayPtr(reinterpret_cast<const capnp::word*>(data), size / sizeof(capnp::word));
-
-                    capnp::FlatArrayMessageReader reader(capnp_data);
-                    auto msgDiscoUpd  = reader.getRoot<riaps::discovery::DiscoUpd>();
-                    auto msgGroupUpd  = msgDiscoUpd.getGroupUpdate();
-                    comp->UpdateGroup(msgGroupUpd);
-
-                    zframe_destroy(&capnp_msgbody);
+//                    zframe_t* capnp_msgbody = zmsg_pop(msg);
+//                    size_t    size = zframe_size(capnp_msgbody);
+//                    unsigned char* data = zframe_data(capnp_msgbody);
+//
+//                    auto capnp_data = kj::arrayPtr(reinterpret_cast<const capnp::word*>(data), size / sizeof(capnp::word));
+//
+//                    capnp::FlatArrayMessageReader reader(capnp_data);
+//                    auto msgDiscoUpd  = reader.getRoot<riaps::discovery::DiscoUpd>();
+//                    auto msgGroupUpd  = msgDiscoUpd.getGroupUpdate();
+//                    comp->UpdateGroup(msgGroupUpd);
+//
+//                    zframe_destroy(&capnp_msgbody);
                 }
 
                 zstr_free(&command);
@@ -329,6 +332,21 @@ namespace riaps{
         zsock_destroy(&timerportOneShot);
         //zsock_destroy(&timerport);
     };
+
+    void ComponentBase::HandleGroupUpdate(const std::string &app_name, const std::string &group_type,
+                                          const std::string &group_name, const std::string &component_id,
+                                          std::vector<std::string> &addresses) {
+        if (app_name != actor()->application_name()) return;
+        if (ComponentUuid() == component_id) return;
+
+        // Send one address
+        // TODO: fix this?
+        zsock_send(GetZmqPipe(), "ssss",
+                CMD_UPDATE_GROUP,
+                group_type.c_str(),
+                group_name.c_str(),
+                addresses.front().c_str());
+    }
 
     shared_ptr<spd::logger> ComponentBase::component_logger() {
         return component_logger_;
@@ -552,7 +570,11 @@ namespace riaps{
     }
 
     const ports::PublisherPort* ComponentBase::InitPublisherPort(const ComponentPortPub& config) {
-        auto result = new ports::PublisherPort(config, this);
+        auto result = new ports::PublisherPort(config,
+                                               actor()->application_name(),
+                                               actor()->actor_name(),
+                                               component_name(),
+                                               has_security());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
@@ -576,7 +598,11 @@ namespace riaps{
 
 
     const ports::SubscriberPort* ComponentBase::InitSubscriberPort(const ComponentPortSub& config) {
-        std::unique_ptr<ports::SubscriberPort> newport(new ports::SubscriberPort(config, this));
+        std::unique_ptr<ports::SubscriberPort> newport(new ports::SubscriberPort(config,
+                                                                                 actor()->application_name(),
+                                                                                 actor()->actor_name(),
+                                                                                 component_name(),
+                                                                                 has_security()));
         auto result = newport.get();
         newport->Init();
         ports_[config.port_name] = std::move(newport);
@@ -584,14 +610,22 @@ namespace riaps{
     }
 
     const ports::ResponsePort* ComponentBase::InitResponsePort(const ComponentPortRep & config) {
-        auto result = new ports::ResponsePort(config, this);
+        auto result = new ports::ResponsePort(config,
+                                              actor()->application_name(),
+                                              actor()->actor_name(),
+                                              component_name(),
+                                              has_security());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
     }
 
     const ports::RequestPort*   ComponentBase::InitRequestPort(const ComponentPortReq& config){
-        std::unique_ptr<ports::RequestPort> newport(new ports::RequestPort(config, this));
+        std::unique_ptr<ports::RequestPort> newport(new ports::RequestPort(config,
+                                                                           actor()->application_name(),
+                                                                           actor()->actor_name(),
+                                                                           component_name(),
+                                                                           has_security()));
         auto result = newport.get();
         newport->Init();
         ports_[config.port_name] = std::move(newport);
@@ -599,14 +633,22 @@ namespace riaps{
     }
 
     const ports::AnswerPort* ComponentBase::InitAnswerPort(const ComponentPortAns & config) {
-        auto result = new ports::AnswerPort(config, this);
+        auto result = new ports::AnswerPort(config,
+                                            actor()->application_name(),
+                                            actor()->actor_name(),
+                                            component_name(),
+                                            has_security());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
     }
 
     const ports::QueryPort* ComponentBase::InitQueryPort(const ComponentPortQry & config) {
-        std::unique_ptr<ports::QueryPort> newport(new ports::QueryPort(config, this));
+        std::unique_ptr<ports::QueryPort> newport(new ports::QueryPort(config,
+                                                                       actor()->application_name(),
+                                                                       actor()->actor_name(),
+                                                                       component_name(),
+                                                                       has_security()));
         auto result = newport.get();
         newport->Init();
         ports_[config.port_name] = std::move(newport);
@@ -614,14 +656,22 @@ namespace riaps{
     }
 
     const ports::InsidePort* ComponentBase::InitInsidePort(const ComponentPortIns& config) {
-        auto result = new ports::InsidePort(config, riaps::ports::InsidePortMode::BIND, this);
+        auto result = new ports::InsidePort(config, riaps::ports::InsidePortMode::BIND,
+                                            actor()->application_name(),
+                                            actor()->actor_name(),
+                                            component_name(),
+                                            has_security());
         std::unique_ptr<ports::PortBase> newport(result);
         ports_[config.port_name] = std::move(newport);
         return result;
     }
 
     const ports::PeriodicTimer* ComponentBase::InitTimerPort(const ComponentPortTim& config) {
-        std::unique_ptr<ports::PeriodicTimer> newtimer(new ports::PeriodicTimer(config, this));
+        std::unique_ptr<ports::PeriodicTimer> newtimer(new ports::PeriodicTimer(config,
+                                                                                actor()->application_name(),
+                                                                                actor()->actor_name(),
+                                                                                component_name(),
+                                                                                has_security()));
         newtimer->Init();
         auto result = newtimer.get();
         ports_[config.port_name] = std::move(newtimer);
@@ -729,17 +779,25 @@ namespace riaps{
     }
 
     bool ComponentBase::JoinGroup(riaps::groups::GroupId &groupId) {
-        if (groups_.find(groupId)!=groups_.end())
+        if (groups_.find(groupId)!=groups_.end()) {
+            riaps_logger_->error("Group with this id already exist: {}::{}", groupId.group_type_id, groupId.group_name);
             return false;
+        }
 
-        auto new_group = join_group(groupId.group_type_id.c_str(),
-                groupId.group_name.c_str(),
-                ComponentUuid().c_str(),
-                actor()->application_name().c_str(),
-                0,
-                nullptr,
-                false,
-                false);
+        auto g_conf = component_config().group_types.find(groupId.group_type_id);
+
+        if (g_conf == component_config().group_types.end()) {
+            riaps_logger_->error("Group type not found in config: {}", groupId.group_type_id);
+            return false;
+        }
+
+
+        auto new_group = new riaps::groups::Group(groupId,
+                g_conf->second,
+                actor()->application_name(),
+                actor()->actor_name(),
+                ComponentUuid(),
+                has_security());
 
         if (new_group->InitGroup()) {
             unique_ptr<riaps::groups::Group> ptr(new_group);
@@ -980,14 +1038,19 @@ namespace riaps{
         return send_vote(group, propose_id.c_str(), accept);
     }
 
-    void ComponentBase::UpdateGroup(riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {
-        // First, find the affected groups
-        riaps::groups::GroupId gid;
-        gid.group_name    = msgGroupUpdate.getGroupId().getGroupName().cStr();
-        gid.group_type_id = msgGroupUpdate.getGroupId().getGroupType().cStr();
+//    void ComponentBase::UpdateGroup(riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {
+//        // First, find the affected groups
+//        riaps::groups::GroupId gid;
+//        gid.group_name    = msgGroupUpdate.getGroupId().getGroupName().cStr();
+//        gid.group_type_id = msgGroupUpdate.getGroupId().getGroupType().cStr();
+//
+//        if (groups_.find(gid) == groups_.end()) return;
+//
+//        groups_[gid]->ConnectToNewServices(msgGroupUpdate);
+//    }
 
-        if (groups_.find(gid) == groups_.end()) return;
-
-        groups_[gid]->ConnectToNewServices(msgGroupUpdate);
+    void ComponentBase::UpdateGroup(riaps::groups::GroupId &group_id, const std::string &address) {
+        if (groups_.find(group_id) == groups_.end()) return;
+        groups_[group_id]->ConnectToNewServices(address);
     }
 }

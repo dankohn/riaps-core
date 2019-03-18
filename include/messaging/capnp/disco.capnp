@@ -152,6 +152,7 @@ struct GroupUpdate {
     groupId           @1 : GroupId;
     componentId       @2 : Text;
     services          @3 : List(GroupService);
+    memberAddress    @4 : Text;
 }
 
 struct DhtUpdate {

@@ -66,23 +66,12 @@ riaps::groups::Group* join_group(const char* group_type,
                                  const char* group_name,
                                  const char* component_id,
                                  const char* application_name,
-                                 int   message_tpyesc,
-                                 char** message_typesv,
-                                 bool has_consensus,
-                                 bool has_leader) {
+                                 bool   has_consensus,
+                                 bool   has_leader) {
     riaps::groups::GroupId gid;
     gid.group_type_id = group_type;
     gid.group_name = group_name;
-    riaps::groups::GroupDetails gd;
-    gd.component_id = component_id;
-    gd.app_name = application_name;
-    gd.group_id = gid;
 
-    for (int i = 0; i<message_tpyesc; i++) {
-        GroupService gs;
-        gs.message_type = message_typesv[i];
-        gd.group_services.push_back(gs);
-    }
 
     auto new_group = new Group(gd, has_leader, has_consensus);
 
@@ -91,6 +80,7 @@ riaps::groups::Group* join_group(const char* group_type,
     }
     return nullptr;
 }
+
 
 void leave_group(riaps::groups::Group* group) {
     delete group;
