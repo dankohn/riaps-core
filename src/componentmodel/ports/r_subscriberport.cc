@@ -6,8 +6,16 @@ using namespace riaps::discovery;
 
 namespace riaps{
     namespace ports {
-        SubscriberPort::SubscriberPort(const ComponentPortSub &config, const ComponentBase *parentComponent)
-                : SubscriberPortBase((ComponentPortConfig*)&config, parentComponent) {
+        SubscriberPort::SubscriberPort(const ComponentPortSub &config,
+                                       const std::string& application_name,
+                                       const std::string& actor_name,
+                                       const std::string& component_name,
+                                       bool has_security)
+                : SubscriberPortBase((ComponentPortConfig*)&config,
+                                     application_name,
+                                     actor_name,
+                                     component_name,
+                                     has_security) {
 
         }
 
@@ -17,9 +25,9 @@ namespace riaps{
 
             auto results =
                     Disco::SubscribeToService(
-                            parent_component()->actor()->application_name(),
-                            parent_component()->component_config().component_name,
-                            parent_component()->actor()->actor_name(),
+                            this->application_name(),
+                            this->component_name(),
+                            this->actor_name(),
                             host,
                             riaps::discovery::Kind::SUB,
                             (current_config->is_local ? riaps::discovery::Scope::LOCAL

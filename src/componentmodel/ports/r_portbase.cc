@@ -15,15 +15,18 @@ namespace riaps {
 
         PortBase::PortBase(PortTypes port_type,
                            const ComponentPortConfig* config,
-                           const ComponentBase* parent_component)
-                : parent_component_(parent_component) {
+                           const std::string& application_name,
+                           const std::string& actor_name,
+                           const std::string& component_name,
+                           bool has_security)
+                           : has_security_(has_security){
 
             port_type_        = port_type;
             config_           = config;
             port_socket_      = nullptr;
             port_certificate_ = nullptr;
 
-            if (has_security()) {
+            if (this->has_security()) {
                 zcert_t* curve_key = riaps::framework::Security::curve_key();
                 if (curve_key == nullptr)
                     logger()->error("Cannot open CURVE key: {}", riaps::framework::Security::curve_key_path());
@@ -36,32 +39,29 @@ namespace riaps {
         }
 
         bool PortBase::has_security() const {
-            if (parent_component_ == nullptr) {
-                logger()->warn("Parent component is null for {}", port_name());
-                return false;
-            }
-            return parent_component_->has_security();
+            return has_security_;
         }
 
         shared_ptr<spd::logger> PortBase::logger() const {
-            // InsidePorts have no parent components
-            if (parent_component_ == nullptr) {
-                string logger_prefix = port_type_ == PortTypes::Inside?"InsidePort":"NullParent";
-                string logger_name = fmt::format("{}::{}", logger_prefix, config_->port_name);
-                if (spd::get(logger_name) == nullptr) {
-                    return spd::stdout_color_mt(logger_name);
-                }
-                return spd::get(logger_name);
+            std::string logger_name = config()->port_name;
+            if (!component_name().empty()) {
+                logger_name = fmt::format("{}::{}", component_name(), config_->port_name);
+//                string logger_prefix = port_type_ == PortTypes::Inside?"InsidePort":"NullParent";
+//                string logger_name = fmt::format("{}::{}", logger_prefix, config_->port_name);
+//                if (spd::get(logger_name) == nullptr) {
+//                    return spd::stdout_color_mt(logger_name);
+//                }
+//                return spd::get(logger_name);
             }
-            return const_cast<ComponentBase*>(parent_component_)->component_logger();
+
+            auto result = spd::get(logger_name);
+            if (result == nullptr)
+                result = spd::stdout_color_mt(logger_name);
+            return result;
         }
 
         const zsock_t *PortBase::port_socket() const {
             return port_socket_;
-        }
-
-        const ComponentBase* PortBase::parent_component() {
-            return parent_component_;
         }
 
         const ComponentPortConfig* PortBase::config() const {

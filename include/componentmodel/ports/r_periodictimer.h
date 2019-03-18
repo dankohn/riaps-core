@@ -14,7 +14,11 @@ namespace riaps {
         class PeriodicTimer : public PortBase {
             friend void ptimeractor(zsock_t* pipe, void* args);
         public:
-            PeriodicTimer(const ComponentPortTim& config, const ComponentBase* parent_component);
+            PeriodicTimer(const ComponentPortTim& config,
+                          const std::string& application_name,
+                          const std::string& actor_name,
+                          const std::string& component_name,
+                          bool has_security);
 
             void Init();
             timespec Recv();

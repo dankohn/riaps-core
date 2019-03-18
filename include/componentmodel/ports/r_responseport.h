@@ -18,7 +18,11 @@ namespace riaps {
 
         class ResponsePort : public PortBase, public SenderPort, public RecvPort {
         public:
-            ResponsePort(const ComponentPortRep &config, const ComponentBase *parent);
+            ResponsePort(const ComponentPortRep &config,
+                         const std::string& application_name,
+                         const std::string& actor_name,
+                         const std::string& component_name,
+                         bool has_security);
             virtual const ComponentPortRep* GetConfig() const;
             ~ResponsePort() noexcept ;
         protected:

@@ -11,7 +11,11 @@ namespace riaps{
     namespace ports{
         class GroupSubscriberPort : public SubscriberPortBase {
         public:
-            GroupSubscriberPort(const ComponentPortSub &config, const ComponentBase* parentComponent);
+            GroupSubscriberPort(const ComponentPortSub &config,
+                                const std::string& application_name,
+                                const std::string& actor_name,
+                                const std::string& component_name,
+                                bool has_security);
             virtual ~GroupSubscriberPort() = default;
 
         private:

@@ -43,10 +43,12 @@ namespace riaps {
 
         PortBase(PortTypes port_type,
                  const ComponentPortConfig* config,
-                 const ComponentBase* parent_component);
+                 const std::string& application_name,
+                 const std::string& actor_name,
+                 const std::string& component_name,
+                 bool has_security);
 
         virtual const zsock_t*       port_socket()      const;
-        const ComponentBase*         parent_component()      ;
         const PortTypes&             port_type()        const;
         const ComponentPortConfig* config()           const;
         const std::string            port_name()        const;
@@ -74,11 +76,18 @@ namespace riaps {
         PortTypes                    port_type_;
         zsock_t*                     port_socket_;
         std::shared_ptr<spd::logger> logger() const;
-        std::shared_ptr<zcert_t>   port_certificate_;
+        std::shared_ptr<zcert_t>     port_certificate_;
+
+        const std::string& application_name() const;
+        const std::string& actor_name() const;
+        const std::string& component_name() const;
 
     private:
         const ComponentPortConfig* config_;
-        const ComponentBase*       parent_component_;
+        const bool has_security_;
+        const std::string application_name_;
+        const std::string actor_name_;
+        const std::string component_name_;
     };
 
     template<class T>

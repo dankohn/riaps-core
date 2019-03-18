@@ -7,8 +7,17 @@ using namespace riaps::discovery;
 namespace riaps{
     namespace ports{
 
-        AnswerPort::AnswerPort(const ComponentPortAns &config, const ComponentBase *parent_component) :
-            PortBase(PortTypes::Answer, (ComponentPortConfig*)&config, parent_component),
+        AnswerPort::AnswerPort(const ComponentPortAns &config,
+                               const std::string& application_name,
+                               const std::string& actor_name,
+                               const std::string& component_name,
+                               bool has_security) :
+            PortBase(PortTypes::Answer,
+                    (ComponentPortConfig*)&config,
+                    application_name,
+                    actor_name,
+                    component_name,
+                    has_security),
             SenderPort(this)
         {
             port_socket_ = zsock_new(ZMQ_ROUTER);
@@ -20,7 +29,7 @@ namespace riaps{
             }
 
             // The port is NOT local AND encrypted
-            if (!GetConfig()->is_local && has_security()) {
+            if (!GetConfig()->is_local && this->has_security()) {
 //                zactor_t *auth = zactor_new (zauth, NULL);
 //                auth_ = shared_ptr<zactor_t>(auth, [](zactor_t* z) {zactor_destroy(&z);});
 //                //zstr_sendx (auth, "VERBOSE", NULL);
@@ -49,8 +58,8 @@ namespace riaps{
             logger()->info("Answerport is created on: {}:{}", host_, port_);
 
             if (!Disco::RegisterService(
-                    parent_component->actor()->application_name(),
-                    parent_component->actor()->actor_name(),
+                    this->application_name(),
+                    this->actor_name(),
                     config.message_type,
                     host_,
                     port_,

@@ -22,7 +22,11 @@ namespace riaps {
 
         class InsidePort : public PortBase, public SenderPort {
         public:
-            InsidePort(const ComponentPortIns &config, InsidePortMode mode, const ComponentBase *parent_component);
+            InsidePort(const ComponentPortIns &config, InsidePortMode mode,
+                       const std::string& application_name,
+                       const std::string& actor_name,
+                       const std::string& component_name,
+                       bool has_security);
             const std::string& GetEndpoint();
             virtual const ComponentPortIns* GetConfig() const;
             virtual bool Recv(zmsg_t** insideMessage);

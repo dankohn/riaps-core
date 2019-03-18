@@ -18,7 +18,11 @@ namespace riaps {
         class SubscriberPort : public SubscriberPortBase {
         public:
 
-            SubscriberPort(const ComponentPortSub &config, const ComponentBase *parentComponent);
+            SubscriberPort(const ComponentPortSub &config,
+                           const std::string& application_name,
+                           const std::string& actor_name,
+                           const std::string& component_name,
+                           bool has_security);
             virtual void Init();
             virtual ~SubscriberPort() = default;
         };

@@ -102,8 +102,17 @@ namespace riaps {
         }
 
 
-        PeriodicTimer::PeriodicTimer(const ComponentPortTim &config, const ComponentBase* parent_component)
-                : PortBase(PortTypes::Timer, (ComponentPortConfig*)&config, parent_component) {
+        PeriodicTimer::PeriodicTimer(const ComponentPortTim &config,
+                                     const std::string& application_name,
+                                     const std::string& actor_name,
+                                     const std::string& component_name,
+                                     bool has_security)
+                : PortBase(PortTypes::Timer, (ComponentPortConfig*)&config,
+                           application_name,
+                           actor_name,
+                           component_name,
+                           has_security) {
+
             interval_    = config.period;
             delay_       = timespec{0,0};
             has_started_ = false;
