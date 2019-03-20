@@ -38,7 +38,7 @@ namespace grouptest {
         }
         
       } else {
-        auto count = GetGroupMemberCount(public_group_id_);
+        auto count = 0; // GetGroupMemberCount(public_group_id_);
         _logger->info("Number of members in groupA (including the current node): {}", count+1);
       }
 
@@ -51,7 +51,7 @@ namespace grouptest {
             _logger->error("Couldn't join to group {}:{}", unique_group_id_.group_type_id, unique_group_id_.group_name);
         }
       } else {
-        auto count = GetGroupMemberCount(unique_group_id_);
+        auto count = 0;//GetGroupMemberCount(unique_group_id_);
         _logger->info("Number of members in groupB (including the current node): {}", count+1);
       }
     }

@@ -1,12 +1,61 @@
 {
-  "name": "Grouptest",
+  "actors":{
+    "ActOne":{
+      "formals":[],
+      "instances":{
+        "c":{
+          "actuals":[],
+          "type":"GroupComp"
+        }
+      },
+      "internals":[],
+      "locals":[],
+      "usage":{
+        "cpu":{},
+        "mem":{},
+        "net":{},
+        "spc":{}
+      }
+    }
+  },
+  "components":{
+    "GroupComp":{
+      "formals":[],
+      "language":"default",
+      "name":"GroupComp",
+      "ports":{
+        "anss":{},
+        "clts":{},
+        "inss":{},
+        "pubs":{},
+        "qrys":{},
+        "reps":{},
+        "reqs":{},
+        "srvs":{},
+        "subs":{},
+        "tims":{
+          "clock":{
+            "deadline":0,
+            "period":3000
+          }
+        }
+      }
+    }
+  },
+  "devices":{},
+  "libraries":[],
+  "messages":[
+    {
+      "name":"MessageType"
+    }
+  ],
   "groups":[
     {
       "name": "groupA",
       "kind": "default",
       "messages":[
         {
-          "type": "MsgType1"
+          "type": "MessageType"
         }
       ]
     },
@@ -15,57 +64,10 @@
       "kind": "default",
       "messages":[
         {
-          "type": "MsgTypeB"
+          "type": "MessageType"
         }
       ]
     }
   ],
-  "devices": {},
-  "components": {
-    "GroupComp": {
-      "name": "GroupComp",
-      "formals": [],
-      "libraries": [],
-      "files": [],
-      "devices": [],
-      "exceptHandler": "",
-      "ports": {
-        "reqs": {},
-        "anss": {},
-        "pubs": {},
-        "reps": {},
-        "inss": {},
-        "subs": {},
-        "clts": {},
-        "srvs": {},
-        "tims": {
-          "clock": {
-            "period": 3000
-          }
-        },
-        "qrys": {}
-      }
-    }
-  },
-  "actors": {
-    "ActOne": {
-      "internals": [],
-      "locals": [],
-      "criticals": [],
-      "formals": [],
-      "wires": [],
-      "instances": {
-        "c": {
-          "type": "GroupComp",
-          "actuals": []
-        }
-      },
-      "devices": [],
-      "memory": -1,
-      "space": -1,
-      "exceptHandler": ""
-    }
-  },
-  "messages": [],
-  "libraries": []
+  "name":"Grouptest"
 }

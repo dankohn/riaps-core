@@ -1,0 +1,4 @@
+// Deploy on all BBB
+app Grouptest {
+	on all ActOne;
+}

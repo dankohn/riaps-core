@@ -25,7 +25,7 @@ namespace grouptest {
            conf.component_type = type_name;
            conf.is_device = false;
            set_config(conf);
-           set_debug_level(spd::level::info);
+           set_debug_level(spd::level::debug,spd::level::debug);
        }
 
        timespec GroupCompBase::RecvClock() {
@@ -40,7 +40,7 @@ namespace grouptest {
            }
        }
 
-       void DispatchInsideMessage(zmsg_t* zmsg, riaps::ports::PortBase* port) {
+       void GroupCompBase::DispatchInsideMessage(zmsg_t* zmsg, riaps::ports::PortBase* port) {
 
        };
    }
