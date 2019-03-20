@@ -11,6 +11,7 @@ namespace py = pybind11;
 class PyConfigConverter {
 public:
     static ComponentConf convert(const py::dict& py_comp_config, const py::dict& py_actor, const py::list& py_groups) {
+        auto logger = spd::stdout_color_mt(__func__);
         ComponentConf result;
         result.is_device = false;
         ParseLocals(py_actor);
@@ -53,6 +54,7 @@ private:
             } else {
                 gtc.has_leader = gtc.has_consensus = false;
             }
+            result.group_types[gtc.group_type_id] = gtc;
         }
     }
 
