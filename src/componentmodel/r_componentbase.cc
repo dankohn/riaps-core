@@ -178,8 +178,12 @@ namespace riaps{
                 }
                 // Forward group update messages
                 else if(streq(command, CMD_UPDATE_GROUP)){
-                    char** group_type, group_name, service;
-                    zsock_recv(pipe, "sss", group_type, group_name, service);
+                    compbase_logger->debug("Group update {} {}", __FILE__, __LINE__);
+                    char* group_type;
+                    char* group_name;
+                    char* service;
+                    zsock_recv(pipe, "sss", &group_type, &group_name, &service);
+                    compbase_logger->debug("After group update {} {} {}", *group_type, *group_name, *service);
 
 //                    zframe_t* capnp_msgbody = zmsg_pop(msg);
 //                    size_t    size = zframe_size(capnp_msgbody);
@@ -799,13 +803,10 @@ namespace riaps{
                 ComponentUuid(),
                 has_security());
 
-        if (new_group->InitGroup()) {
-            unique_ptr<riaps::groups::Group> ptr(new_group);
-            groups_[groupId] = std::move(ptr);
-            return true;
-        }
+        unique_ptr<riaps::groups::Group> ptr(new_group);
+        groups_[groupId] = std::move(ptr);
 
-        return false;
+        return true;
     }
 
     bool ComponentBase::LeaveGroup(riaps::groups::GroupId &&groupId) {

@@ -232,6 +232,7 @@ namespace riaps{
                 riaps::discovery::ServiceLookupReq::Reader msgServiceLookup = msgDiscoReq.getServiceLookup();
                 HandleServiceLookup(msgServiceLookup);
             } else if (msgDiscoReq.isGroupJoin()){
+                logger_->debug("GroupJoin arrived. {} line: ", __FILE__, __LINE__);
                 riaps::discovery::GroupJoinReq::Reader msgGroupJoin = msgDiscoReq.getGroupJoin();
                 HandleGroupJoin(msgGroupJoin);
             }
@@ -686,6 +687,7 @@ namespace riaps{
     }
 
     void DiscoveryMessageHandler::HandleGroupJoin(riaps::discovery::GroupJoinReq::Reader& msgGroupJoin){
+        logger_->debug("{}", __func__);
 
         // Join to the group.
         auto msgGroupServices   = msgGroupJoin.getServices();
@@ -701,6 +703,7 @@ namespace riaps{
                 msgGroupJoin.getGroupId().getGroupName()
         };
 
+
         for (int i = 0; i<msgGroupServices.size(); i++){
             groupDetails.group_services.push_back({
                                                          msgGroupServices[i].getMessageType(),
@@ -710,6 +713,7 @@ namespace riaps{
         }
 
         string key = fmt::format("/groups/{}",appName);
+        logger_->debug("key: {}", key);
 
         //Send response
         capnp::MallocMessageBuilder repMessage;

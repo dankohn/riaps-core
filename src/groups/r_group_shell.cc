@@ -86,10 +86,8 @@ riaps::groups::Group* join_group(const char* group_type,
                                component_id,
                                has_security);
 
-    if (new_group->InitGroup()) {
-        return new_group;
-    }
-    return nullptr;
+
+    return new_group;
 }
 
 

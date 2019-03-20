@@ -70,7 +70,8 @@ namespace riaps{
             logger_ = spd::get(component_id);
             if (logger_ == nullptr)
                 logger_=spd::stdout_color_mt(component_id);
-            assert(logger_!=nullptr);
+            logger_->set_level(spd::level::debug);
+
             ping_timeout_ = Timeout<std::chrono::milliseconds>(PING_BASE_PERIOD);
 
             random_generator_ = std::mt19937(random_device_());
@@ -83,6 +84,7 @@ namespace riaps{
         }
 
         bool Group::InitGroup() {
+            logger()->debug("{}", __func__);
             // Default port for the group. Reserved for RIAPS internal communication protocols
             GroupPortPub internalPubConfig;
             internalPubConfig.message_type = INTERNAL_MESSAGETYPE;
@@ -921,34 +923,43 @@ namespace riaps{
         }
 
         void group_actor (zsock_t *pipe, void *args) {
+
             auto group        = (Group*)args;
             auto group_id     = group->group_id();
             auto logger       = group->logger();
             auto component_id = group->component_id();
 
+            logger->debug("{}", __func__);
+
+
             if (!group->InitGroup()) {
                 logger->error("Couldn't init group: {}::{}", group_id.group_type_id, group_id.group_name);
                 return;
             }
+            logger->debug("{}", "Group inited");
 
             auto group_pub  = group->group_pubport();
             auto group_sub  = group->group_subport();
             auto pub_socket = group_pub->port_socket();
             auto sub_socket = const_cast<zsock_t*>(group_sub->port_socket());
 
-            auto poller_ptr = unique_ptr<zpoller_t, function<void(zpoller_t*)>>(zpoller_new(pipe), [](zpoller_t* z){
-                zpoller_destroy(&z);
-            });
-            auto poller = poller_ptr.get();
+//            auto poller_ptr = unique_ptr<zpoller_t, function<void(zpoller_t*)>>(zpoller_new(pipe), [logger](zpoller_t* z){
+//                logger->debug("Destroying group poller");
+//                zpoller_destroy(&z);
+//            });
+//            auto poller = poller_ptr.get();
+            auto poller = zpoller_new(pipe, nullptr);
 
             zpoller_add(poller, sub_socket);
 
             zpoller_set_nonstop(poller, true);
             zsock_signal (pipe, 0);
             bool terminated = false;
+            logger->debug("{}", "Loop starts");
             while (!terminated) {
+                logger->debug("{}", "Poller");
                 void *which = zpoller_wait(poller, 10);
-
+                logger->debug("{}", "After poller");
                 if (which == pipe) {
                     zmsg_t *msg = zmsg_recv(which);
                     if (!msg) {
@@ -965,10 +976,12 @@ namespace riaps{
                     //} else if (which == sub_socket){
 
                 } else {
-                    group->SendPingWithPeriod();
-                    group->FetchNextMessage();
+                    logger->debug("{}", "PINGPONG");
+                    //group->SendPingWithPeriod();
+                    //group->FetchNextMessage();
                 }
             }
+            zpoller_destroy(&poller);
         }
     }
 }
