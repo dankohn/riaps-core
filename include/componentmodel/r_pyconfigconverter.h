@@ -17,11 +17,6 @@ public:
         ParseLocals(py_actor);
         ParseGroupTypes(py_groups, result);
 
-        for (auto& r : result.group_types) {
-            //logger->info("HelloBello: {}",py_groups[0].cast<py::dict>()["name"].cast<std::string>());
-            logger->info("HelloBello: {}", r.first);
-        }
-
         auto json_ports  = py_comp_config[J_PORTS];
         auto json_pubs  = json_ports[J_PORTS_PUBS].cast<py::dict>();
         auto json_subs  = json_ports[J_PORTS_SUBS].cast<py::dict>();

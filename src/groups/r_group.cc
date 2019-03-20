@@ -68,6 +68,8 @@ namespace riaps{
 
             // TODO: what is the logger id here?
             logger_ = spd::get(component_id);
+            if (logger_ == nullptr)
+                logger_=spd::stdout_color_mt(component_id);
             assert(logger_!=nullptr);
             ping_timeout_ = Timeout<std::chrono::milliseconds>(PING_BASE_PERIOD);
 
@@ -855,6 +857,26 @@ namespace riaps{
 
         bool Group::has_consensus() {
             return group_type_conf_.has_consensus;
+        }
+
+        void Group::ForwardOnPropose(const riaps::groups::GroupId &groupId, const std::string &proposeId,
+                                     capnp::FlatArrayMessageReader &message) {
+
+        }
+
+        void Group::ForwardOnMessageToLeader(const riaps::groups::GroupId &groupId,
+                                             capnp::FlatArrayMessageReader &message) {
+
+        }
+
+        void Group::ForwardOnAnnounce(const riaps::groups::GroupId &groupId, const std::string &proposeId,
+                                      bool accepted) {
+
+        }
+
+        void Group::ForwardOnActionPropose(const riaps::groups::GroupId &groupId, const std::string &proposeId,
+                                           const std::string &actionId, const timespec &timePoint) {
+
         }
 
 

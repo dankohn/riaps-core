@@ -42,6 +42,18 @@ namespace riaps {
             return has_security_;
         }
 
+        const std::string& PortBase::component_name() const {
+            return component_name_;
+        }
+
+        const std::string& PortBase::application_name() const {
+            return application_name_;
+        }
+
+        const std::string& PortBase::actor_name() const {
+            return actor_name_;
+        }
+
         shared_ptr<spd::logger> PortBase::logger() const {
             std::string logger_name = config()->port_name;
             if (!component_name().empty()) {
