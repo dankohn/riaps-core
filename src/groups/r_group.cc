@@ -424,7 +424,7 @@ namespace riaps{
 
             /**
              * If no known node, sending periodically.
-             * Else Send ping ONLY if there is a suspicoius component (timeout exceeded)
+             * Else Send ping ONLY if there is a suspicious component (timeout exceeded)
              */
             if (known_nodes_.size() == 0 && ping_timeout_.IsTimeout()){
                 ping_timeout_.Reset();
@@ -661,196 +661,138 @@ namespace riaps{
 //            return subscriberPort;
 //        }
 
-        void Group::FetchNextMessage() {
+        void Group::FetchNextMessage(zmsg_t* zmsg) {
+            if (zmsg == nullptr) return;
 
-            void* which = zpoller_wait(group_poller_, 1);
-            if (which == nullptr){
-                // No incoming message, update the leader
-                if (group_type_conf_.has_leader) {
-                    group_leader_->Update();
-                }
-                return;
-            }
-
-            // Look for the port
-            ports::PortBase* currentPort = nullptr;
-            try{
-                currentPort = group_ports_.at(static_cast<zsock_t*>(which)).get();
-            } catch (std::out_of_range& e){
-                return;
-            }
-
-            riaps::ports::GroupSubscriberPort* subscriberPort = currentPort->AsGroupSubscriberPort();
-
-            // If the port is not a subscriber port (in theory this is impossible)
-            if (subscriberPort == nullptr)  return;
-
-            // Delete the previous message if there is any
-//            if (_lastFrame != nullptr) {
-//                zframe_destroy(&_lastFrame);
-//                _lastFrame = nullptr;
-//            };
-
-            zmsg_t* msg = zmsg_recv(const_cast<zsock_t*>(subscriberPort->port_socket()));
-            zframe_t* firstFrame;
+            zframe_t* first_frame;
             capnp::FlatArrayMessageReader frmReader(nullptr);
 
-            if (msg) {
+            // _lstFrame owns the data. Must be preserved until the next message
+            first_frame  = zmsg_pop(zmsg);
+            auto framePtr = std::shared_ptr<zframe_t>(first_frame, [](zframe_t* z){zframe_destroy(&z);});
+            (*first_frame) >> frmReader;
 
-                auto msgPtr = std::shared_ptr<zmsg_t>(msg, [](zmsg_t* z){zmsg_destroy(&z);});
+            riaps::distrcoord::GroupInternals::Reader internal = frmReader.getRoot<riaps::distrcoord::GroupInternals>();
+            if (internal.hasGroupMessage()) {
+                auto grp_msg = internal.getGroupMessage();
+                auto data = grp_msg.getMessage();
+                ForwardOnGroupMessage(data);
+            }
+            else if (internal.hasGroupHeartBeat()) {
+                auto groupHeartBeat = internal.getGroupHeartBeat();
+                auto it = known_nodes_.find(groupHeartBeat.getSourceComponentId());
 
-                // _lstFrame owns the data. Must be preserved until the next message
-                firstFrame  = zmsg_pop(msg);
-                auto framePtr = std::shared_ptr<zframe_t>(firstFrame, [](zframe_t* z){zframe_destroy(&z);});
-                (*firstFrame) >> frmReader;
-                //size_t size = zframe_size(_lastFrame);
-                //byte *data  = zframe_data(_lastFrame);
+                // New node, set the timeout
+                if (it == known_nodes_.end()) {
+                    known_nodes_[groupHeartBeat.getSourceComponentId().cStr()] =
+                            Timeout<std::chrono::milliseconds>(timeout_distribution_(random_generator_));
+                } else
+                    it->second.Reset(timeout_distribution_(random_generator_));
 
-                //kj::ArrayPtr<const capnp::word> capnp_data(reinterpret_cast<const capnp::word *>(data), size / sizeof(capnp::word));
+                if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PING) {
+                    logger_->debug("<<PING<<");
+                    SendPong();
+                    return;
+                } else if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PONG) {
+                    logger_->debug("<<PONG<<");
+                    return;
+                }
+            } else if (internal.hasLeaderElection()){
+                auto msgLeader = internal.getLeaderElection();
+                group_leader_->Update(msgLeader);
+                return;
+            } else if (internal.hasMessageToLeader()){
+                auto msgLeader = internal.getMessageToLeader();
+                if (leader_id() != component_id_) return;
 
+                zframe_t* leaderMsgFrame = zmsg_pop(zmsg);
+                if (!leaderMsgFrame) return;
+                auto leaderMsgPtr = std::shared_ptr<zframe_t>(leaderMsgFrame, [](zframe_t* z){zframe_destroy(&z);});
+                capnp::FlatArrayMessageReader capnpLeaderMsg(nullptr);
+                (*leaderMsgFrame) >> capnpLeaderMsg;
 
-                //messageReader.reset(new capnp::FlatArrayMessageReader(capnp_data));
+                ForwardOnMessageToLeader(group_id_, capnpLeaderMsg);
 
-                // Internal port, handle it here and don't send any notifications to the caller
-                if (subscriberPort == group_subport_.get()){
-                    //capnp::FlatArrayMessageReader reader(capnp_data);
-
-                    riaps::distrcoord::GroupInternals::Reader internal = frmReader.getRoot<riaps::distrcoord::GroupInternals>();
-                    if (internal.hasGroupMessage()) {
-                        auto grp_msg = internal.getGroupMessage();
-                        auto data = grp_msg.getMessage();
-                        OnGroupMessage(data);
-//                        // Read the content
-//                        zframe_t* messageFrame;
-//                        messageFrame = zmsg_pop(msg);
-//                        if (messageFrame) {
-//                            auto msgFrmPtr = std::shared_ptr<zframe_t>(messageFrame, [](zframe_t* z){zframe_destroy(&z);});
-//                            (*messageFrame) >> frmReader;
-//                            //frmReader = capnpReader;
-//                            parent_component_->OnGroupMessage(group_id_, frmReader, nullptr);
-//                            return;
-//                        }
-                    }
-                    else if (internal.hasGroupHeartBeat()) {
-                        auto groupHeartBeat = internal.getGroupHeartBeat();
-                        auto it = known_nodes_.find(groupHeartBeat.getSourceComponentId());
-
-                        // New node, set the timeout
-                        if (it == known_nodes_.end()) {
-                            known_nodes_[groupHeartBeat.getSourceComponentId().cStr()] =
-                                    Timeout<std::chrono::milliseconds>(timeout_distribution_(random_generator_));
-                        } else
-                            it->second.Reset(timeout_distribution_(random_generator_));
-
-                        if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PING) {
-                            //m_logger->debug("<<PING<<");
-                            SendPong();
-                            return;
-                        } else if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PONG) {
-                            //logger_->debug("<<PONG<<");
-                            return;
-                        }
-                    } else if (internal.hasLeaderElection()){
-                        auto msgLeader = internal.getLeaderElection();
-                        group_leader_->Update(msgLeader);
-                        return;
-                    } else if (internal.hasMessageToLeader()){
-                        auto msgLeader = internal.getMessageToLeader();
-                        if (leader_id() != component_id_) return;
-
-                        zframe_t* leaderMsgFrame = zmsg_pop(msg);
-                        if (!leaderMsgFrame) return;
-                        auto leaderMsgPtr = std::shared_ptr<zframe_t>(leaderMsgFrame, [](zframe_t* z){zframe_destroy(&z);});
-                        capnp::FlatArrayMessageReader capnpLeaderMsg(nullptr);
-                        (*leaderMsgFrame) >> capnpLeaderMsg;
-
-                        ForwardOnMessageToLeader(group_id_, capnpLeaderMsg);
-
-                        return;
-                    } else if (internal.hasConsensus()) {
-                        auto msgCons = internal.getConsensus();
-                       // m_logger->debug("DC message arrived from {}", msgDistCoord.getSourceComponentId().cStr());
+                return;
+            } else if (internal.hasConsensus()) {
+                auto msgCons = internal.getConsensus();
+               // m_logger->debug("DC message arrived from {}", msgDistCoord.getSourceComponentId().cStr());
 
 //                        // The current component is the leader
-                        if (leader_id() == component_id_) {
-                            //m_logger->debug("DC message arrived and this component is the leader");
+                if (leader_id() == component_id_) {
+                    //m_logger->debug("DC message arrived and this component is the leader");
 
 //                            // Propose arrived to the leader. Leader forwards it to every groupmember.
-                            // TODO: We may not need the forwarding step, since everybody got the message
-                            if (msgCons.hasProposeToLeader()){
-                                auto msgPropose = msgCons.getProposeToLeader();
+                    // TODO: We may not need the forwarding step, since everybody got the message
+                    if (msgCons.hasProposeToLeader()){
+                        auto msgPropose = msgCons.getProposeToLeader();
 
-                                // Value is proposed
-                                if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::VALUE){
-                                    zframe_t* proposeFrame;
-                                    proposeFrame = zmsg_pop(msg);
-                                    logger_->info("Message proposed to the leader, proposeId: {}", msgPropose.getProposeId().cStr());
-                                    group_leader_->OnProposeFromClient(msgPropose, &proposeFrame);
-                                    if (proposeFrame!= nullptr)
-                                        zframe_destroy(&proposeFrame);
-                                }
+                        // Value is proposed
+                        if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::VALUE){
+                            zframe_t* proposeFrame;
+                            proposeFrame = zmsg_pop(zmsg);
+                            logger_->info("Message proposed to the leader, proposeId: {}", msgPropose.getProposeId().cStr());
+                            group_leader_->OnProposeFromClient(msgPropose, &proposeFrame);
+                            if (proposeFrame!= nullptr)
+                                zframe_destroy(&proposeFrame);
+                        }
 
-                                    // Action is proposed to the leader
-                                else if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::ACTION) {
-                                    auto msgTsca = msgCons.getTsyncCoordA();
-                                    logger_->info("Action proposed to the leader, proposeId: {}, actionId: {}",
-                                                  msgPropose.getProposeId().cStr(),
-                                                  msgTsca.getActionId().cStr());
-                                    group_leader_->OnActionProposeFromClient(msgPropose,msgTsca);
-                                }
+                            // Action is proposed to the leader
+                        else if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::ACTION) {
+                            auto msgTsca = msgCons.getTsyncCoordA();
+                            logger_->info("Action proposed to the leader, proposeId: {}, actionId: {}",
+                                          msgPropose.getProposeId().cStr(),
+                                          msgTsca.getActionId().cStr());
+                            group_leader_->OnActionProposeFromClient(msgPropose,msgTsca);
+                        }
 
 //                            // Vote arrived, count the votes and announce the results (if any)
-                            } else if (msgCons.hasVote()){
-                                //m_logger->info("Vote arrived to the leader");
-                                auto msgVote = msgCons.getVote();
-                                group_leader_->OnVote(msgVote, msgCons.getSourceComponentId());
-                            }
-                        }
+                    } else if (msgCons.hasVote()){
+                        //m_logger->info("Vote arrived to the leader");
+                        auto msgVote = msgCons.getVote();
+                        group_leader_->OnVote(msgVote, msgCons.getSourceComponentId());
+                    }
+                }
 //                        // The current component is not a leader
-                        else {
-                            //m_logger->debug("DC message arrived and this component is not the leader");
+                else {
+                    //m_logger->debug("DC message arrived and this component is not the leader");
 //                            // propose by the leader, must vote on something
-                            if (msgCons.hasProposeToClients()) {
-                                auto msgPropose = msgCons.getProposeToClients();
-                                //m_logger->debug("Message proposed to the client, proposeId: {}", msgPropose.getProposeId().cStr());
+                    if (msgCons.hasProposeToClients()) {
+                        auto msgPropose = msgCons.getProposeToClients();
+                        //m_logger->debug("Message proposed to the client, proposeId: {}", msgPropose.getProposeId().cStr());
 
-                                if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::VALUE) {
-                                    zframe_t *proposeFrame;
-                                    proposeFrame = zmsg_pop(msg);
-                                    capnp::FlatArrayMessageReader *reader;
-                                    (*proposeFrame) >> reader;
-                                    ForwardOnPropose(group_id_, msgPropose.getProposeId(), *reader);
-                                } else if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::ACTION) {
-                                    timespec t{
-                                            msgCons.getTsyncCoordA().getTime().getTvSec(),
-                                            msgCons.getTsyncCoordA().getTime().getTvNsec()
-                                    };
+                        if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::VALUE) {
+                            zframe_t *proposeFrame;
+                            proposeFrame = zmsg_pop(zmsg);
+                            capnp::FlatArrayMessageReader *reader;
+                            (*proposeFrame) >> reader;
+                            ForwardOnPropose(group_id_, msgPropose.getProposeId(), *reader);
+                        } else if (msgCons.getVoteType() == riaps::distrcoord::Consensus::VoteType::ACTION) {
+                            timespec t{
+                                    msgCons.getTsyncCoordA().getTime().getTvSec(),
+                                    msgCons.getTsyncCoordA().getTime().getTvNsec()
+                            };
 
-                                    if (t.tv_sec!=msgCons.getTsyncCoordA().getTime().getTvSec())
-                                        logger_->error("tv_sec!=TvSec");
-                                    if (t.tv_nsec!=msgCons.getTsyncCoordA().getTime().getTvNsec())
-                                        logger_->error("tv_nsec!=TvNsec");
+                            if (t.tv_sec!=msgCons.getTsyncCoordA().getTime().getTvSec())
+                                logger_->error("tv_sec!=TvSec");
+                            if (t.tv_nsec!=msgCons.getTsyncCoordA().getTime().getTvNsec())
+                                logger_->error("tv_nsec!=TvNsec");
 
-                                    this->ForwardOnActionPropose(group_id_,
-                                                           msgPropose.getProposeId(),
-                                                           msgCons.getTsyncCoordA().getActionId(),
-                                                           t);
-                                }
-                            } else if (msgCons.hasAnnounce()) {
-                                auto msgAnnounce = msgCons.getAnnounce();
-                                this->ForwardOnAnnounce(group_id_,
-                                                 msgAnnounce.getProposeId(),
-                                                 msgAnnounce.getVoteResult() == riaps::distrcoord::Consensus::VoteResults::ACCEPTED);
-                            }
+                            this->ForwardOnActionPropose(group_id_,
+                                                   msgPropose.getProposeId(),
+                                                   msgCons.getTsyncCoordA().getActionId(),
+                                                   t);
                         }
-
-                        return;
+                    } else if (msgCons.hasAnnounce()) {
+                        auto msgAnnounce = msgCons.getAnnounce();
+                        this->ForwardOnAnnounce(group_id_,
+                                         msgAnnounce.getProposeId(),
+                                         msgAnnounce.getVoteResult() == riaps::distrcoord::Consensus::VoteResults::ACCEPTED);
                     }
                 }
 
-
+                return;
             }
-            return;
         }
 
         bool Group::has_leader() {
@@ -881,6 +823,10 @@ namespace riaps{
 
         }
 
+        void Group::ForwardOnGroupMessage(capnp::Data::Reader &data) {
+            //zsock_send(notif_socket_.get(), "sb", ONGROUP_MESSAGE, data.begin(), data.size());
+        }
+
 
         bool Group::SendVote(const std::string &propose_id, bool accept) {
             capnp::MallocMessageBuilder builder;
@@ -897,9 +843,7 @@ namespace riaps{
             return SendMessage(builder);
         }
 
-        void Group::OnGroupMessage(capnp::Data::Reader &data) {
-            zsock_send(notif_socket_.get(), "sb", ONGROUP_MESSAGE, data.begin(), data.size());
-        }
+
 
         const GroupId& Group::group_id() {
             return group_id_;
@@ -955,11 +899,8 @@ namespace riaps{
             zpoller_set_nonstop(poller, true);
             zsock_signal (pipe, 0);
             bool terminated = false;
-            logger->debug("{}", "Loop starts");
             while (!terminated) {
-                logger->debug("{}", "Poller");
                 void *which = zpoller_wait(poller, 10);
-                logger->debug("{}", "After poller");
                 if (which == pipe) {
                     zmsg_t *msg = zmsg_recv(which);
                     if (!msg) {
@@ -975,11 +916,12 @@ namespace riaps{
                     }
                     //} else if (which == sub_socket){
 
-                } else {
-                    logger->debug("{}", "PINGPONG");
-                    //group->SendPingWithPeriod();
-                    //group->FetchNextMessage();
+                } else if (which == sub_socket){
+                    zmsg_t *msg = zmsg_recv(which);
+                    group->FetchNextMessage(msg);
+                    zmsg_destroy(&msg);
                 }
+                group->SendPingWithPeriod();
             }
             zpoller_destroy(&poller);
         }

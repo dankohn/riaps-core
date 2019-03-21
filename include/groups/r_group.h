@@ -115,7 +115,7 @@ namespace riaps {
 
 
             //ports::GroupSubscriberPort* FetchNextMessage(std::shared_ptr<capnp::FlatArrayMessageReader>& messageReader);
-            void FetchNextMessage();
+            void FetchNextMessage(zmsg_t* zmsg);
 
             bool SendPingWithPeriod();
             bool SendPing();
@@ -157,7 +157,7 @@ namespace riaps {
             ~Group();
         private:
 
-            void OnGroupMessage(capnp::Data::Reader& data);
+            void ForwardOnGroupMessage(capnp::Data::Reader& data);
 
             void ForwardOnActionPropose(const riaps::groups::GroupId& groupId,
                                         const std::string& proposeId,
