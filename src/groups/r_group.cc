@@ -381,8 +381,9 @@ namespace riaps{
         }
 
         void Group::ConnectToNewServices(std::string address) {
-            address = fmt::format("tcp://{}",address);
-            group_subport()->ConnectToPublihser(address);
+
+            logger()->debug("{}->{}", __func__, address);
+            zsock_send(this->group_zactor_.get(), "ss", CMD_UPDATE_GROUP, address.c_str());
         }
 
 //        void Group::ConnectToNewServices(riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {
@@ -913,8 +914,12 @@ namespace riaps{
                     if (streq(command, "$TERM")) {
                         logger->debug("$TERM arrived");
                         terminated = true;
+                    } else if (streq(command, CMD_UPDATE_GROUP)) {
+                        char* address = zmsg_popstr(msg);
+                        string zmq_address = fmt::format("tcp://{}", address);
+                        logger->debug("Group connects to: {}", zmq_address);
+                        group->group_subport()->ConnectToPublihser(zmq_address);
                     }
-                    //} else if (which == sub_socket){
 
                 } else if (which == sub_socket){
                     zmsg_t *msg = zmsg_recv(which);

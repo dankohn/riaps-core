@@ -295,10 +295,15 @@ namespace riaps{
             // Subscribe to groups
             if (group_listeners_.find(appname) == group_listeners_.end()) {
                 string key = fmt::format("/groups/{}",appname);
+                auto l = logger_;
                 group_listeners_[appname] =
-                        dht_node_.listen<DhtData>(dht::InfoHash(key), [this](vector<DhtData>&& values){
-                            if (values.size() == 0) return true;
+                        dht_node_.listen<DhtData>(dht::InfoHash::get(key), [this, l](vector<DhtData>&& values){
+                            if (values.empty()) {
+                                l->debug("Empty values. Quiting.");
+                                return true;
+                            }
 
+                            l->debug("Start Push()");
                             async(launch::async, &DiscoveryMessageHandler::PushDhtValuesToDisco, this, values);
                             return true;
                         });
@@ -474,7 +479,10 @@ namespace riaps{
             d.raw_data = data;
         }
 
-        dht_node_.put(keyhash, d);
+        auto tmplogger = logger_;
+        dht_node_.put(keyhash, d, [tmplogger, keyhash](bool succ){
+            tmplogger->debug("put is done ({}) for: {}", succ, keyhash.toString());
+        });
     }
 
     void DiscoveryMessageHandler::HandleServiceLookup(riaps::discovery::ServiceLookupReq::Reader &msgServiceLookup) {
@@ -687,8 +695,6 @@ namespace riaps{
     }
 
     void DiscoveryMessageHandler::HandleGroupJoin(riaps::discovery::GroupJoinReq::Reader& msgGroupJoin){
-        logger_->debug("{}", __func__);
-
         // Join to the group.
         auto msgGroupServices   = msgGroupJoin.getServices();
         string appName     = msgGroupJoin.getAppName();
@@ -713,7 +719,6 @@ namespace riaps{
         }
 
         string key = fmt::format("/groups/{}",appName);
-        logger_->debug("key: {}", key);
 
         //Send response
         capnp::MallocMessageBuilder repMessage;
@@ -732,7 +737,9 @@ namespace riaps{
 
         zmsg_send(&msg, riaps_socket_);
 
-        dht_node_.get<DhtData>(dht::InfoHash(key), [this](vector<DhtData>&& values){
+        auto tmp_logger = logger_;
+        dht_node_.get<DhtData>(dht::InfoHash(key), [this, &tmp_logger](vector<DhtData>&& values){
+
             if (values.size() == 0) return true;
 
             async(launch::async, &DiscoveryMessageHandler::PushDhtValuesToDisco, this, values);
@@ -766,7 +773,6 @@ namespace riaps{
         zsock_set_linger(dht_notification_socket, 0);
         zsock_set_sndtimeo(dht_notification_socket, 0);
 
-
         // Let's unpack the data
         for (auto& value : values) {
             if (has_security_) {
@@ -775,7 +781,6 @@ namespace riaps{
             }
 
             riaps::groups::GroupDetails v = dht::unpackMsg<riaps::groups::GroupDetails>(value.raw_data);
-
             capnp::MallocMessageBuilder dht_message;
             auto msg_dht_update = dht_message.initRoot<riaps::discovery::DhtUpdate>();
             auto msg_group_update = msg_dht_update.initGroupUpdate();
@@ -794,9 +799,7 @@ namespace riaps{
             
             // Changing the protocoll, send just one address
             msg_group_update.setMemberAddress(v.group_services[0].address);
-
             auto serialized_message = capnp::messageToFlatArray(dht_message);
-
             zmsg_t *msg = zmsg_new();
             auto bytes = serialized_message.asBytes();
             zmsg_pushmem(msg, bytes.begin(), bytes.size());

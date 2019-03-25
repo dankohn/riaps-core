@@ -28,6 +28,7 @@ namespace grouptest {
 
     void GroupComp::OnClock() {
       auto _logger = component_logger();
+      auto ts = RecvClock();
       if (!joined_to_a_) {
         _logger->info("Component joins to {}:{}", public_group_id_.group_type_id, public_group_id_.group_name);
         auto joined = JoinGroup(public_group_id_);
@@ -84,18 +85,19 @@ PYBIND11_MODULE(libgroupcomp, m) {
     py::class_<grouptest::components::GroupComp> testClass(m, "GroupComp");
     testClass.def(py::init<const py::object*, const py::dict, const py::dict, const py::list, const std::string&, const std::string&, const py::dict, const std::string&, const std::string&>());
 
-    testClass.def("setup"                 , &grouptest::components::GroupComp::Setup);
-    testClass.def("activate"              , &grouptest::components::GroupComp::Activate);
-    testClass.def("terminate"             , &grouptest::components::GroupComp::Terminate);
-    testClass.def("handlePortUpdate"      , &grouptest::components::GroupComp::HandlePortUpdate);
-    testClass.def("handleCPULimit"        , &grouptest::components::GroupComp::HandleCPULimit);
-    testClass.def("handleMemLimit"        , &grouptest::components::GroupComp::HandleMemLimit);
-    testClass.def("handleSpcLimit"        , &grouptest::components::GroupComp::HandleSpcLimit);
-    testClass.def("handleNetLimit"        , &grouptest::components::GroupComp::HandleNetLimit);
-    testClass.def("handleNICStateChange"  , &grouptest::components::GroupComp::HandleNICStateChange);
+    testClass.def("setup"                 , &grouptest::components::GroupComp::Setup                );
+    testClass.def("activate"              , &grouptest::components::GroupComp::Activate             );
+    testClass.def("terminate"             , &grouptest::components::GroupComp::Terminate            );
+    testClass.def("handlePortUpdate"      , &grouptest::components::GroupComp::HandlePortUpdate     );
+    testClass.def("handleCPULimit"        , &grouptest::components::GroupComp::HandleCPULimit       );
+    testClass.def("handleMemLimit"        , &grouptest::components::GroupComp::HandleMemLimit       );
+    testClass.def("handleSpcLimit"        , &grouptest::components::GroupComp::HandleSpcLimit       );
+    testClass.def("handleNetLimit"        , &grouptest::components::GroupComp::HandleNetLimit       );
+    testClass.def("handleNICStateChange"  , &grouptest::components::GroupComp::HandleNICStateChange );
     testClass.def("handlePeerStateChange" , &grouptest::components::GroupComp::HandlePeerStateChange);
-    testClass.def("handleReinstate"       , &grouptest::components::GroupComp::HandleReinstate);
-    testClass.def("handleGroupUpdate"     , &grouptest::components::GroupComp::HandleGroupUpdate);
+    testClass.def("handleReinstate"       , &grouptest::components::GroupComp::HandleReinstate      );
+    testClass.def("handleGroupUpdate"     , &grouptest::components::GroupComp::HandleGroupUpdate    );
+    testClass.def("componentId"           , &grouptest::components::GroupComp::component_id         );
 
     m.def("create_component_py", &create_component_py, "Instantiates the component from python configuration");
 }

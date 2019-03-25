@@ -179,11 +179,27 @@ namespace riaps{
                 // Forward group update messages
                 else if(streq(command, CMD_UPDATE_GROUP)){
                     compbase_logger->debug("Group update {} {}", __FILE__, __LINE__);
-                    char* group_type;
-                    char* group_name;
-                    char* service;
-                    zsock_recv(pipe, "sss", &group_type, &group_name, &service);
-                    compbase_logger->debug("After group update {} {} {}", *group_type, *group_name, *service);
+                    char* group_type = zmsg_popstr(msg);
+                    char* group_name = zmsg_popstr(msg);
+                    char* service    = zmsg_popstr(msg);
+
+                    // Message matches with the format
+                    if (group_type && group_name && service) {
+                        compbase_logger->debug("After group update {} {} {}", group_type, group_name, service);
+                        riaps::groups::GroupId gid;
+                        gid.group_type_id = group_type;
+                        gid.group_name    = group_name;
+                        auto group = comp->GetGroupById(gid);
+                        if(group) {
+                            group->ConnectToNewServices(service);
+                        }
+                    };
+
+                    zstr_free(&group_type);
+                    zstr_free(&group_name);
+                    zstr_free(&service);
+
+
 
 //                    zframe_t* capnp_msgbody = zmsg_pop(msg);
 //                    size_t    size = zframe_size(capnp_msgbody);
@@ -231,8 +247,9 @@ namespace riaps{
 
             // TODO: ROUTER-DEALER may not compatible with the python version. Make it compatible.
             else if(which){
-                compbase_logger->debug("Message on other ports");
-                    ports::PortBase *riapsPort = const_cast<ports::PortBase *>(portSockets[static_cast<zsock_t *>(which)]);
+
+                ports::PortBase *riapsPort = const_cast<ports::PortBase *>(portSockets[static_cast<zsock_t *>(which)]);
+                //compbase_logger->debug("Message on other ports: {}", riapsPort->port_name());
 
                     // If the port is async, the frames are different
                     if (riapsPort->AsAnswerPort() != nullptr || riapsPort->AsQueryPort() != nullptr) {
@@ -337,19 +354,15 @@ namespace riaps{
         //zsock_destroy(&timerport);
     };
 
-    void ComponentBase::HandleGroupUpdate(const std::string &app_name, const std::string &group_type,
-                                          const std::string &group_name, const std::string &component_id,
-                                          std::vector<std::string> &addresses) {
-        if (app_name != actor()->application_name()) return;
-        if (ComponentUuid() == component_id) return;
-
-        // Send one address
-        // TODO: fix this?
+    void ComponentBase::HandleGroupUpdate(const std::string &group_type,
+                                          const std::string &group_name,
+                                          const std::string &address) {
+        riaps_logger_->debug("{}->{}::{}->{}", __func__, group_type, group_name, address);
         zsock_send(GetZmqPipe(), "ssss",
                 CMD_UPDATE_GROUP,
                 group_type.c_str(),
                 group_name.c_str(),
-                addresses.front().c_str());
+                address.c_str());
     }
 
     shared_ptr<spd::logger> ComponentBase::component_logger() {
@@ -751,10 +764,10 @@ namespace riaps{
 //    }
 
     string ComponentBase::getOneShotTimerChannel() {
-        return fmt::format("inproc://oneshottimer{}",ComponentUuid());
+        return fmt::format("inproc://oneshottimer{}", component_id());
     }
 
-    const string ComponentBase::ComponentUuid() const{
+    const string ComponentBase::component_id() const{
         string uuid_str = zuuid_str(component_uuid_);
         return uuid_str;
     }
@@ -800,7 +813,7 @@ namespace riaps{
                 g_conf->second,
                 actor()->application_name(),
                 actor()->actor_name(),
-                ComponentUuid(),
+                                                  component_id(),
                 has_security());
 
         unique_ptr<riaps::groups::Group> ptr(new_group);
@@ -839,7 +852,7 @@ namespace riaps{
     }
 
     bool ComponentBase::IsLeader(const riaps::groups::Group* group) {
-        return ComponentUuid() == group->leader_id();
+        return component_id() == group->leader_id();
     }
 
     bool ComponentBase::IsLeader(const riaps::groups::GroupId &groupId) {
@@ -1050,8 +1063,9 @@ namespace riaps{
 //        groups_[gid]->ConnectToNewServices(msgGroupUpdate);
 //    }
 
-    void ComponentBase::UpdateGroup(riaps::groups::GroupId &group_id, const std::string &address) {
-        if (groups_.find(group_id) == groups_.end()) return;
-        groups_[group_id]->ConnectToNewServices(address);
-    }
+//    void ComponentBase::UpdateGroup(const std::string &group_type, const std::string &group_name,
+//                                    const std::string &address) {
+//        riaps_logger_->info("{} {}::{}::{}", __func__, group_type, group_name, address);
+//        if (groups_.find(group_id) == groups_.end()) return;
+//    }
 }

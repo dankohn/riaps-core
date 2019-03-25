@@ -77,11 +77,9 @@ namespace riaps {
         virtual void Setup() final;
         virtual void Activate() final;
         virtual void HandlePortUpdate(const std::string &port_name, const std::string &host, int port) final;
-        virtual void HandleGroupUpdate(const std::string&        app_name,
-                                       const std::string&        group_type,
-                                       const std::string&        group_name,
-                                       const std::string&        component_id,
-                                       std::vector<std::string>& addresses) final;
+        virtual void HandleGroupUpdate(const std::string &group_type,
+                                       const std::string &group_name,
+                                       const std::string &address) final;
         virtual void HandleReinstate() final;
 
         /**
@@ -147,8 +145,7 @@ namespace riaps {
 
 
         //void UpdateGroup(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
-        void UpdateGroup(riaps::groups::GroupId& group_id, const std::string& address);
-
+//        void UpdateGroup(const std::string& group_type, const std::string& group_name, const std::string& address);
 
         /**
          *
@@ -160,7 +157,7 @@ namespace riaps {
          *
          * @return The component unique ID.
          */
-        const std::string ComponentUuid() const;
+        const std::string component_id() const;
 
         /**
          * Resource management handlers

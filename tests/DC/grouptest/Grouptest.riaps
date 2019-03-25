@@ -11,4 +11,10 @@ app Grouptest{
             c:GroupComp();
         }
     }
+
+    actor ActTwo {
+        {
+            c:GroupComp();
+        }
+    }
 }
