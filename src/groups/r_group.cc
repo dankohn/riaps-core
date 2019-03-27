@@ -84,7 +84,7 @@ namespace riaps{
         }
 
         bool Group::InitGroup() {
-            logger()->debug("{}", __func__);
+            //logger()->debug("{}", __func__);
             // Default port for the group. Reserved for RIAPS internal communication protocols
             GroupPortPub internalPubConfig;
             internalPubConfig.message_type = INTERNAL_MESSAGETYPE;
@@ -144,7 +144,7 @@ namespace riaps{
             // Setup leader election
             if (has_joined && has_leader()) {
                 group_leader_ = std::unique_ptr<riaps::groups::GroupLead>(
-                        new GroupLead(this, &known_nodes_)
+                        new GroupLead(this)
                 );
                 group_leader_->SetOnLeaderChanged([this](const std::string& newLeader){
                     logger_->debug("Leader changed: {}", newLeader);
@@ -364,12 +364,12 @@ namespace riaps{
         }
 
         std::shared_ptr<std::set<std::string>> Group::GetKnownComponents() {
-            std::shared_ptr<std::set<std::string>> result(new std::set<std::string>());
-
-            for (auto& n : known_nodes_){
-                if (n.second.IsTimeout()) continue;
-                result->emplace(n.first);
-            }
+//            std::shared_ptr<std::set<std::string>> result(new std::set<std::string>());
+//
+//            for (auto& n : known_nodes_){
+//                if (n.second.IsTimeout()) continue;
+//                result->emplace(n.first);
+//            }
 //            std::transform(known_nodes_.begin(),
 //                           known_nodes_.end(),
 //                           std::back_inserter(*result),
@@ -377,12 +377,12 @@ namespace riaps{
 //                               return p.first;
 //                           });
 
-            return result;
+            return known_nodes_.keys();
         }
 
         void Group::ConnectToNewServices(std::string address) {
 
-            logger()->debug("{}->{}", __func__, address);
+            //logger()->debug("{}->{}", __func__, address);
             zsock_send(this->group_zactor_.get(), "ss", CMD_UPDATE_GROUP, address.c_str());
         }
 
@@ -411,13 +411,13 @@ namespace riaps{
 //        }
 
         bool Group::SendPing() {
-            //m_logger->debug(">>PING>>");
+            logger_->debug(">>PING>>");
             ping_timeout_.Reset();
             return SendHeartBeat(dc::HeartBeatType::PING);
         }
 
         bool Group::SendPong() {
-            //m_logger->debug(">>PONG>>");
+            logger_->debug(">>PONG>>");
             return SendHeartBeat(dc::HeartBeatType::PONG);
         }
 
@@ -432,12 +432,16 @@ namespace riaps{
                 return SendPing();
             }
             else {
-                for (auto it = known_nodes_.begin(); it != known_nodes_.end(); it++) {
-                    if (it->second.IsTimeout()&& ping_timeout_.IsTimeout()) {
-                        ping_timeout_.Reset();
-                        return SendPing();
-                    }
+                if (this->known_nodes_.AnyTimeout() && ping_timeout_.IsTimeout()) {
+                    ping_timeout_.Reset();
+                    return SendPing();
                 }
+//                for (auto it = known_nodes_.begin(); it != known_nodes_.end(); it++) {
+//                    if (it->second.IsTimeout()&& ping_timeout_.IsTimeout()) {
+//                        ping_timeout_.Reset();
+//                        return SendPing();
+//                    }
+//                }
             }
 
             //if (ping_timeout_.IsTimeout()){
@@ -473,18 +477,7 @@ namespace riaps{
         }
 
         uint32_t Group::DeleteTimeoutNodes() {
-            uint32_t deleted=0;
-            for(auto it = std::begin(known_nodes_); it != std::end(known_nodes_);)
-            {
-                if ((*it).second.IsTimeout())
-                {
-                    it = known_nodes_.erase(it);
-                    deleted++;
-                }
-                else
-                    ++it;
-            }
-            return deleted;
+            return known_nodes_.DeleteTimedOut();
         }
 
 //        ports::GroupSubscriberPort* Group::FetchNextMessage(std::shared_ptr<capnp::FlatArrayMessageReader>& messageReader) {
@@ -663,6 +656,7 @@ namespace riaps{
 //        }
 
         void Group::FetchNextMessage(zmsg_t* zmsg) {
+            logger()->debug("{}", __func__);
             if (zmsg == nullptr) return;
 
             zframe_t* first_frame;
@@ -681,14 +675,20 @@ namespace riaps{
             }
             else if (internal.hasGroupHeartBeat()) {
                 auto groupHeartBeat = internal.getGroupHeartBeat();
-                auto it = known_nodes_.find(groupHeartBeat.getSourceComponentId());
+                //auto it = known_nodes_.find(groupHeartBeat.getSourceComponentId());
 
                 // New node, set the timeout
-                if (it == known_nodes_.end()) {
-                    known_nodes_[groupHeartBeat.getSourceComponentId().cStr()] =
-                            Timeout<std::chrono::milliseconds>(timeout_distribution_(random_generator_));
-                } else
-                    it->second.Reset(timeout_distribution_(random_generator_));
+                //if (it == known_nodes_.end()) {
+                if (known_nodes_.contains(groupHeartBeat.getSourceComponentId())) {
+                    //known_nodes_[groupHeartBeat.getSourceComponentId().cStr()] =
+                    //        Timeout<std::chrono::milliseconds>(timeout_distribution_(random_generator_));
+                    Timeout<std::chrono::milliseconds> to(timeout_distribution_(random_generator_));
+                    known_nodes_.put(groupHeartBeat.getSourceComponentId().cStr(), to);
+                } else {
+                    //it->second.Reset(timeout_distribution_(random_generator_));
+                    Timeout<std::chrono::milliseconds>* to = known_nodes_.timeout(groupHeartBeat.getSourceComponentId().cStr());//.Reset(timeout_distribution_(random_generator_));
+                    to->Reset(timeout_distribution_(random_generator_));
+                }
 
                 if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PING) {
                     logger_->debug("<<PING<<");
@@ -917,8 +917,9 @@ namespace riaps{
                     } else if (streq(command, CMD_UPDATE_GROUP)) {
                         char* address = zmsg_popstr(msg);
                         string zmq_address = fmt::format("tcp://{}", address);
-                        logger->debug("Group connects to: {}", zmq_address);
+                        //logger->debug("Group connects to: {}", zmq_address);
                         group->group_subport()->ConnectToPublihser(zmq_address);
+                        zstr_free(&address);
                     }
 
                 } else if (which == sub_socket){

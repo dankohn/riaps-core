@@ -10,9 +10,8 @@ using namespace std::chrono;
 using namespace std;
 
 
-GroupLead::GroupLead(Group* group, std::unordered_map<std::string, Timeout<std::chrono::milliseconds>>* knownNodes)
-    : m_group(group),
-      m_knownNodes(knownNodes)
+GroupLead::GroupLead(Group* group)
+    : m_group(group)
 {
 
     /**

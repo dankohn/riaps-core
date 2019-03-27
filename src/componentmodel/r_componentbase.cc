@@ -178,14 +178,14 @@ namespace riaps{
                 }
                 // Forward group update messages
                 else if(streq(command, CMD_UPDATE_GROUP)){
-                    compbase_logger->debug("Group update {} {}", __FILE__, __LINE__);
+                    //compbase_logger->debug("Group update {} {}", __FILE__, __LINE__);
                     char* group_type = zmsg_popstr(msg);
                     char* group_name = zmsg_popstr(msg);
                     char* service    = zmsg_popstr(msg);
 
                     // Message matches with the format
                     if (group_type && group_name && service) {
-                        compbase_logger->debug("After group update {} {} {}", group_type, group_name, service);
+                        //compbase_logger->debug("After group update {} {} {}", group_type, group_name, service);
                         riaps::groups::GroupId gid;
                         gid.group_type_id = group_type;
                         gid.group_name    = group_name;

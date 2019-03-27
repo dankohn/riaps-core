@@ -160,6 +160,7 @@ list (APPEND riapslib_HEADERS
         include/const/r_const.h
         include/groups/r_group.h
         include/groups/r_grouplead.h
+        include/groups/r_safe_map.h
         include/messaging/disco.capnp.h
         include/messaging/distcoord.capnp.h
         include/utils/r_expirable.h

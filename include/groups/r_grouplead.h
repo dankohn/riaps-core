@@ -40,7 +40,7 @@ namespace riaps{
              *
              */
             enum NodeState{FOLLOWER, CANDIDATE, LEADER};
-            GroupLead(riaps::groups::Group* group, std::unordered_map<std::string, Timeout<std::chrono::milliseconds>>* knownNodes);
+            GroupLead(riaps::groups::Group* group);
             const NodeState GetNodeState() const;
 
             void SetOnLeaderChanged(std::function<void(const std::string&)> handler);

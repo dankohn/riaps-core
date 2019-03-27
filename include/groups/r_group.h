@@ -14,6 +14,7 @@
 #include <messaging/disco.capnp.h>
 #include <messaging/distcoord.capnp.h>
 #include <utils/r_timeout.h>
+#include <groups/r_safe_map.h>
 
 #include <spdlog_setup/conf.h>
 #include <msgpack.hpp>
@@ -210,7 +211,10 @@ namespace riaps {
              *  key   - component id (uuid, generated runtime, when the component starts
              *  value - timestamp of the last message from the given component
              */
-            std::unordered_map<std::string, riaps::utils::Timeout<std::chrono::milliseconds>> known_nodes_;
+            //std::unordered_map<std::string, riaps::utils::Timeout<std::chrono::milliseconds>> known_nodes_;
+
+            SafeMap known_nodes_;
+
 
             zpoller_t* group_poller_;
 
