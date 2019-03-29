@@ -422,7 +422,6 @@ namespace riaps{
         }
 
         bool Group::SendPingWithPeriod() {
-
             /**
              * If no known node, sending periodically.
              * Else Send ping ONLY if there is a suspicious component (timeout exceeded)
@@ -461,6 +460,8 @@ namespace riaps{
 
 
         bool Group::SendHeartBeat(riaps::distrcoord::HeartBeatType type) {
+            logger_->debug("{} from {}", __func__, component_id_);
+
             capnp::MallocMessageBuilder builder;
             auto internal = builder.initRoot<riaps::distrcoord::GroupInternals>();
             auto heartbeat = internal.initGroupHeartBeat();
@@ -669,25 +670,37 @@ namespace riaps{
 
             riaps::distrcoord::GroupInternals::Reader internal = frmReader.getRoot<riaps::distrcoord::GroupInternals>();
             if (internal.hasGroupMessage()) {
+
                 auto grp_msg = internal.getGroupMessage();
                 auto data = grp_msg.getMessage();
                 ForwardOnGroupMessage(data);
             }
             else if (internal.hasGroupHeartBeat()) {
+                logger()->debug("Heartbeat {}", __func__);
+
                 auto groupHeartBeat = internal.getGroupHeartBeat();
+                std::string source_id = groupHeartBeat.getSourceComponentId().cStr();
                 //auto it = known_nodes_.find(groupHeartBeat.getSourceComponentId());
 
                 // New node, set the timeout
                 //if (it == known_nodes_.end()) {
-                if (known_nodes_.contains(groupHeartBeat.getSourceComponentId())) {
+                if (!known_nodes_.contains(source_id)) {
+                    logger()->debug("Heartbeat from new node ", source_id);
                     //known_nodes_[groupHeartBeat.getSourceComponentId().cStr()] =
                     //        Timeout<std::chrono::milliseconds>(timeout_distribution_(random_generator_));
                     Timeout<std::chrono::milliseconds> to(timeout_distribution_(random_generator_));
-                    known_nodes_.put(groupHeartBeat.getSourceComponentId().cStr(), to);
+                    known_nodes_.put(source_id, to);
                 } else {
+
+                    logger()->debug("Heartbeat from old node: {} ", source_id);
                     //it->second.Reset(timeout_distribution_(random_generator_));
-                    Timeout<std::chrono::milliseconds>* to = known_nodes_.timeout(groupHeartBeat.getSourceComponentId().cStr());//.Reset(timeout_distribution_(random_generator_));
-                    to->Reset(timeout_distribution_(random_generator_));
+                    Timeout<std::chrono::milliseconds>* to = known_nodes_.timeout(source_id);//.Reset(timeout_distribution_(random_generator_));
+                    logger()->debug("Heartbeat from old node got to : {}", source_id);
+                    auto td = timeout_distribution_(random_generator_);
+                    logger()->debug("is to null? : {}", to == nullptr);
+
+                    to->Reset(td);
+                    logger()->debug("Heartbeat from old node after to reset {}", source_id);
                 }
 
                 if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PING) {
@@ -901,7 +914,7 @@ namespace riaps{
             zsock_signal (pipe, 0);
             bool terminated = false;
             while (!terminated) {
-                void *which = zpoller_wait(poller, 10);
+                void *which = zpoller_wait(poller, 500);
                 if (which == pipe) {
                     zmsg_t *msg = zmsg_recv(which);
                     if (!msg) {
@@ -917,12 +930,13 @@ namespace riaps{
                     } else if (streq(command, CMD_UPDATE_GROUP)) {
                         char* address = zmsg_popstr(msg);
                         string zmq_address = fmt::format("tcp://{}", address);
-                        //logger->debug("Group connects to: {}", zmq_address);
+                        logger->debug("Group connects to: {}", zmq_address);
                         group->group_subport()->ConnectToPublihser(zmq_address);
                         zstr_free(&address);
                     }
 
                 } else if (which == sub_socket){
+                    logger->debug("{}", "sub_socket message");
                     zmsg_t *msg = zmsg_recv(which);
                     group->FetchNextMessage(msg);
                     zmsg_destroy(&msg);
