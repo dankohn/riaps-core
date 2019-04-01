@@ -358,11 +358,11 @@ namespace riaps{
                                           const std::string &group_name,
                                           const std::string &address) {
         riaps_logger_->debug("{}->{}::{}::{}->{}", __func__, actor()->actor_name(), group_type, group_name, address);
-//        zsock_send(GetZmqPipe(), "ssss",
-//                CMD_UPDATE_GROUP,
-//                group_type.c_str(),
-//                group_name.c_str(),
-//                address.c_str());
+        zsock_send(GetZmqPipe(), "ssss",
+                CMD_UPDATE_GROUP,
+                group_type.c_str(),
+                group_name.c_str(),
+                address.c_str());
     }
 
     shared_ptr<spd::logger> ComponentBase::component_logger() {

@@ -392,7 +392,6 @@ namespace riaps{
         }
 
         void Group::ConnectToNewServices(std::string address) {
-
             logger()->debug("{} {}->{}", __func__, actor_name_, address);
             zsock_send(this->group_zactor_.get(), "ss", CMD_UPDATE_GROUP, address.c_str());
         }
@@ -906,7 +905,7 @@ namespace riaps{
             //zpoller_add(poller, sub_socket);
             zpoller_set_nonstop(poller, true);
 
-            //zsock_signal (pipe, 0);
+            zsock_signal (pipe, 0);
 //            logger->debug("Sending pipe signal");
 //            zsock_send(pipe, "i", 0);
 //            logger->debug("Signal sent");
@@ -943,7 +942,7 @@ namespace riaps{
                         char* address = zmsg_popstr(msg);
                         string zmq_address = fmt::format("tcp://{}", address);
                         logger->debug("{} connects to: {} own pub: {}", group->actor_name_, zmq_address, group_pub->endpoint());
-                        //group->group_subport()->ConnectToPublihser(zmq_address);
+                        group->group_subport()->ConnectToPublihser(zmq_address);
                         zstr_free(&address);
                     }
 
