@@ -104,7 +104,14 @@ namespace riaps {
              * Creates the communication ports and registers the group in the discovery service.
              * @return true if the ports were succesfully created and registered False otherwise.
              */
-            bool InitGroup();
+            bool InitGroup(zpoller_t* poller);
+
+            /**
+             * Starts the zactor, call it BEFORE the InitGroup()
+             * @return
+             */
+            void StartGroupActor();
+
 
             //void ConnectToNewServices(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
             void ConnectToNewServices(std::string address);
@@ -214,14 +221,8 @@ namespace riaps {
             //std::unordered_map<std::string, riaps::utils::Timeout<std::chrono::milliseconds>> known_nodes_;
 
             SafeMap known_nodes_;
-
-
-            zpoller_t* group_poller_;
-
             std::shared_ptr<spd::logger> logger_;
-
             riaps::utils::Timeout<std::chrono::milliseconds> ping_timeout_;
-
 
             std::random_device random_device_;
             std::mt19937         random_generator_;
@@ -230,7 +231,6 @@ namespace riaps {
             std::unique_ptr<riaps::groups::GroupLead> group_leader_;
             bool has_leader();
             bool has_consensus();
-
         };
 
     }

@@ -76,7 +76,7 @@ public:
     }
     void put(const std::string& node_id, riaps::utils::Timeout<std::chrono::milliseconds>& timeout) {
         std::lock_guard<std::mutex> lock(mut_);
-        data_.insert(make_pair(node_id, timeout));
+        data_[node_id] = timeout;
     }
 
     ~SafeMap() = default;

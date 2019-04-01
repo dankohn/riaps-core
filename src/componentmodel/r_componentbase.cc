@@ -357,12 +357,12 @@ namespace riaps{
     void ComponentBase::HandleGroupUpdate(const std::string &group_type,
                                           const std::string &group_name,
                                           const std::string &address) {
-        riaps_logger_->debug("{}->{}::{}->{}", __func__, group_type, group_name, address);
-        zsock_send(GetZmqPipe(), "ssss",
-                CMD_UPDATE_GROUP,
-                group_type.c_str(),
-                group_name.c_str(),
-                address.c_str());
+        riaps_logger_->debug("{}->{}::{}::{}->{}", __func__, actor()->actor_name(), group_type, group_name, address);
+//        zsock_send(GetZmqPipe(), "ssss",
+//                CMD_UPDATE_GROUP,
+//                group_type.c_str(),
+//                group_name.c_str(),
+//                address.c_str());
     }
 
     shared_ptr<spd::logger> ComponentBase::component_logger() {
@@ -818,7 +818,7 @@ namespace riaps{
 
         unique_ptr<riaps::groups::Group> ptr(new_group);
         groups_[groupId] = std::move(ptr);
-
+        groups_[groupId]->StartGroupActor();
         return true;
     }
 

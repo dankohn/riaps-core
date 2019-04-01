@@ -57,8 +57,7 @@ namespace riaps{
                 has_security_    (has_security),
                 group_pubport_   (nullptr),
                 group_subport_   (nullptr),
-                group_leader_    (nullptr),
-                group_poller_    (nullptr){
+                group_leader_    (nullptr) {
 
             auto push_address = fmt::format("inproc://group_{}", component_id);
             notif_socket_ = unique_ptr<zsock_t, function<void(zsock_t*)>>(zsock_new_push(push_address.c_str()),
@@ -67,9 +66,9 @@ namespace riaps{
                                                                               });
 
             // TODO: what is the logger id here?
-            logger_ = spd::get(component_id);
+            logger_ = spd::get(actor_name);
             if (logger_ == nullptr)
-                logger_=spd::stdout_color_mt(component_id);
+                logger_=spd::stdout_color_mt(actor_name);
             logger_->set_level(spd::level::debug);
 
             ping_timeout_ = Timeout<std::chrono::milliseconds>(PING_BASE_PERIOD);
@@ -77,13 +76,16 @@ namespace riaps{
             random_generator_ = std::mt19937(random_device_());
             timeout_distribution_ = std::uniform_int_distribution<int>(PING_BASE_PERIOD*1.1, PING_BASE_PERIOD*2);
 
-            group_zactor_ = unique_ptr<zactor_t, function<void(zactor_t*)>>(zactor_new(group_actor, this),
-                                                                          [](zactor_t* z){
-                                                                              zactor_destroy(&z);
-                                                                          });
+
+//            zclock_sleep(200);
+//            logger_->debug("Waiting for signal...");
+//            //int rc = zsock_wait(group_zactor_.get());
+//            int rc = -1;
+//            zsock_recv(group_zactor_.get(), "i", &rc);
+//            logger_->debug("Signal arrived: {}", rc);
         }
 
-        bool Group::InitGroup() {
+        bool Group::InitGroup(zpoller_t* poller) {
             //logger()->debug("{}", __func__);
             // Default port for the group. Reserved for RIAPS internal communication protocols
             GroupPortPub internalPubConfig;
@@ -116,8 +118,10 @@ namespace riaps{
                             has_security_));
             group_ports_[group_subport_->port_socket()] = group_subport_;
 
+            //zpoller_add(poller, const_cast<zsock_t*>(group_subport_->port_socket()));
+
             // Initialize the zpoller and add the group sub port
-            group_poller_ = zpoller_new(const_cast<zsock_t*>(group_subport_->port_socket()), nullptr);
+            //group_poller_ = zpoller_new(const_cast<zsock_t*>(group_subport_->port_socket()), nullptr);
 
 //            // Initialize user defined publishers
 //            for(auto& portDeclaration : group_type_conf_.group_type_ports.pubs){
@@ -199,6 +203,13 @@ namespace riaps{
             capnp::Data::Builder capnp_buffer(buffer, len);
             msg_to_leader.setMessage(capnp_buffer);
             return SendMessage(builder);
+        }
+
+        void Group::StartGroupActor() {
+            group_zactor_ = unique_ptr<zactor_t, function<void(zactor_t*)>>(zactor_new(group_actor, this),
+                                                                            [](zactor_t* z){
+                                                                                zactor_destroy(&z);
+                                                                            });
         }
 
         bool Group::ProposeValueToLeader(capnp::MallocMessageBuilder &message, const std::string &proposeId) {
@@ -382,7 +393,7 @@ namespace riaps{
 
         void Group::ConnectToNewServices(std::string address) {
 
-            //logger()->debug("{}->{}", __func__, address);
+            logger()->debug("{} {}->{}", __func__, actor_name_, address);
             zsock_send(this->group_zactor_.get(), "ss", CMD_UPDATE_GROUP, address.c_str());
         }
 
@@ -478,7 +489,9 @@ namespace riaps{
         }
 
         uint32_t Group::DeleteTimeoutNodes() {
-            return known_nodes_.DeleteTimedOut();
+            auto rc = known_nodes_.DeleteTimedOut();
+            logger()->debug("Deleted: {}", rc);
+            return rc;
         }
 
 //        ports::GroupSubscriberPort* Group::FetchNextMessage(std::shared_ptr<capnp::FlatArrayMessageReader>& messageReader) {
@@ -657,7 +670,7 @@ namespace riaps{
 //        }
 
         void Group::FetchNextMessage(zmsg_t* zmsg) {
-            logger()->debug("{}", __func__);
+            //logger()->debug("{}", __func__);
             if (zmsg == nullptr) return;
 
             zframe_t* first_frame;
@@ -676,7 +689,7 @@ namespace riaps{
                 ForwardOnGroupMessage(data);
             }
             else if (internal.hasGroupHeartBeat()) {
-                logger()->debug("Heartbeat {}", __func__);
+                //logger()->debug("Heartbeat {}", __func__);
 
                 auto groupHeartBeat = internal.getGroupHeartBeat();
                 std::string source_id = groupHeartBeat.getSourceComponentId().cStr();
@@ -693,14 +706,16 @@ namespace riaps{
                 } else {
 
                     logger()->debug("Heartbeat from old node: {} ", source_id);
-                    //it->second.Reset(timeout_distribution_(random_generator_));
-                    Timeout<std::chrono::milliseconds>* to = known_nodes_.timeout(source_id);//.Reset(timeout_distribution_(random_generator_));
-                    logger()->debug("Heartbeat from old node got to : {}", source_id);
-                    auto td = timeout_distribution_(random_generator_);
-                    logger()->debug("is to null? : {}", to == nullptr);
-
-                    to->Reset(td);
-                    logger()->debug("Heartbeat from old node after to reset {}", source_id);
+                    Timeout<std::chrono::milliseconds> to(timeout_distribution_(random_generator_));
+                    known_nodes_.put(source_id, to);
+//                    //it->second.Reset(timeout_distribution_(random_generator_));
+//                    Timeout<std::chrono::milliseconds>* to = known_nodes_.timeout(source_id);//.Reset(timeout_distribution_(random_generator_));
+//                    logger()->debug("Heartbeat from old node got to : {}", source_id);
+//                    auto td = timeout_distribution_(random_generator_);
+//                    logger()->debug("is to null? : {}", to == nullptr);
+//
+//                    to->Reset(td);
+//                    logger()->debug("Heartbeat from old node after to reset {}", source_id);
                 }
 
                 if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PING) {
@@ -819,26 +834,28 @@ namespace riaps{
 
         void Group::ForwardOnPropose(const riaps::groups::GroupId &groupId, const std::string &proposeId,
                                      capnp::FlatArrayMessageReader &message) {
+            logger()->debug("{}", __func__);
 
         }
 
         void Group::ForwardOnMessageToLeader(const riaps::groups::GroupId &groupId,
                                              capnp::FlatArrayMessageReader &message) {
-
+            logger()->debug("{}", __func__);
         }
 
         void Group::ForwardOnAnnounce(const riaps::groups::GroupId &groupId, const std::string &proposeId,
                                       bool accepted) {
-
+            logger()->debug("{}", __func__);
         }
 
         void Group::ForwardOnActionPropose(const riaps::groups::GroupId &groupId, const std::string &proposeId,
                                            const std::string &actionId, const timespec &timePoint) {
-
+            logger()->debug("{}", __func__);
         }
 
         void Group::ForwardOnGroupMessage(capnp::Data::Reader &data) {
             //zsock_send(notif_socket_.get(), "sb", ONGROUP_MESSAGE, data.begin(), data.size());
+            logger()->debug("{}", __func__);
         }
 
 
@@ -872,12 +889,7 @@ namespace riaps{
         }
 
         Group::~Group() {
-//            if (_lastFrame!= nullptr){
-//                zframe_destroy(&_lastFrame);
-//                _lastFrame=nullptr;
-//            }
-            if (group_poller_ != nullptr)
-                zpoller_destroy(&group_poller_);
+
         }
 
         void group_actor (zsock_t *pipe, void *args) {
@@ -889,8 +901,18 @@ namespace riaps{
 
             logger->debug("{}", __func__);
 
+            auto poller = zpoller_new(pipe, nullptr);
 
-            if (!group->InitGroup()) {
+            //zpoller_add(poller, sub_socket);
+            zpoller_set_nonstop(poller, true);
+
+            //zsock_signal (pipe, 0);
+//            logger->debug("Sending pipe signal");
+//            zsock_send(pipe, "i", 0);
+//            logger->debug("Signal sent");
+
+            logger->debug("{}", "Before Init");
+            if (!group->InitGroup(poller)) {
                 logger->error("Couldn't init group: {}::{}", group_id.group_type_id, group_id.group_name);
                 return;
             }
@@ -901,20 +923,10 @@ namespace riaps{
             auto pub_socket = group_pub->port_socket();
             auto sub_socket = const_cast<zsock_t*>(group_sub->port_socket());
 
-//            auto poller_ptr = unique_ptr<zpoller_t, function<void(zpoller_t*)>>(zpoller_new(pipe), [logger](zpoller_t* z){
-//                logger->debug("Destroying group poller");
-//                zpoller_destroy(&z);
-//            });
-//            auto poller = poller_ptr.get();
-            auto poller = zpoller_new(pipe, nullptr);
 
-            zpoller_add(poller, sub_socket);
-
-            zpoller_set_nonstop(poller, true);
-            zsock_signal (pipe, 0);
             bool terminated = false;
             while (!terminated) {
-                void *which = zpoller_wait(poller, 500);
+                void *which = zpoller_wait(poller, 10);
                 if (which == pipe) {
                     zmsg_t *msg = zmsg_recv(which);
                     if (!msg) {
@@ -930,8 +942,8 @@ namespace riaps{
                     } else if (streq(command, CMD_UPDATE_GROUP)) {
                         char* address = zmsg_popstr(msg);
                         string zmq_address = fmt::format("tcp://{}", address);
-                        logger->debug("Group connects to: {}", zmq_address);
-                        group->group_subport()->ConnectToPublihser(zmq_address);
+                        logger->debug("{} connects to: {} own pub: {}", group->actor_name_, zmq_address, group_pub->endpoint());
+                        //group->group_subport()->ConnectToPublihser(zmq_address);
                         zstr_free(&address);
                     }
 
