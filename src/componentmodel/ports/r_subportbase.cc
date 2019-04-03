@@ -15,6 +15,7 @@ namespace riaps {
                            component_name,
                            has_security), RecvPort(this) {
            InitSocket();
+           logger()->set_level(spd::level::debug);
         }
 
         void SubscriberPortBase::InitSocket() {
