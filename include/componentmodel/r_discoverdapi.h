@@ -57,7 +57,7 @@ namespace riaps {
             static bool JoinGroup(const std::string &app_name,
                                   const std::string &component_id,
                                   const riaps::groups::GroupId &group_id,
-                                  const std::vector<riaps::groups::GroupService> &group_services
+                                  const riaps::groups::GroupService &group_service
             );
 
             static zsock_t* RegisterActor(const std::string& app_name, const std::string& actor_name);

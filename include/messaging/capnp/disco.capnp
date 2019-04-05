@@ -125,7 +125,8 @@ struct GroupService {
 struct GroupJoinReq {
     appName     @0 : Text;
     groupId     @1 : GroupId;
-    services    @2 : List(GroupService);
+    #services    @2 : List(GroupService);
+    service     @2 : GroupService;
     componentId @3 : Text;
     pid         @4 : Int32;
 }
@@ -150,9 +151,9 @@ struct ProviderListGet {
 struct GroupUpdate {
     appName           @0 : Text;
     groupId           @1 : GroupId;
-    componentId       @2 : Text;
-    services          @3 : List(GroupService);
-    memberAddress    @4 : Text;
+    sourceComponentId @2 : Text;
+    # services        @3 : List(GroupService);
+    service           @3 : GroupService;
 }
 
 struct DhtUpdate {

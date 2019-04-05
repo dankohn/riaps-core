@@ -696,7 +696,7 @@ namespace riaps{
 
     void DiscoveryMessageHandler::HandleGroupJoin(riaps::discovery::GroupJoinReq::Reader& msgGroupJoin){
         // Join to the group.
-        auto msgGroupServices   = msgGroupJoin.getServices();
+        auto msg_group_service   = msgGroupJoin.getService();
         string appName     = msgGroupJoin.getAppName();
         string componentId = msgGroupJoin.getComponentId();
         auto actorPid           = msgGroupJoin.getPid();
@@ -709,14 +709,19 @@ namespace riaps{
                 msgGroupJoin.getGroupId().getGroupName()
         };
 
+        groupDetails.group_services.push_back({
+            msg_group_service.getMessageType(),
+            msg_group_service.getAddress()
+        });
 
-        for (int i = 0; i<msgGroupServices.size(); i++){
-            groupDetails.group_services.push_back({
-                                                         msgGroupServices[i].getMessageType(),
-                                                         msgGroupServices[i].getAddress()
-                                                 });
-            logger_->debug("REG: {}", msgGroupServices[i].getAddress().cStr());
-        }
+
+//        for (int i = 0; i<msgGroupServices.size(); i++){
+//            groupDetails.group_services.push_back({
+//                                                         msgGroupServices[i].getMessageType(),
+//                                                         msgGroupServices[i].getAddress()
+//                                                 });
+//            logger_->debug("REG: {}", msgGroupServices[i].getAddress().cStr());
+//        }
 
         string key = fmt::format("/groups/{}",appName);
 
@@ -737,13 +742,10 @@ namespace riaps{
 
         zmsg_send(&msg, riaps_socket_);
 
-        auto tmp_logger = logger_;
-        dht_node_.get<DhtData>(dht::InfoHash(key), [this, &tmp_logger](vector<DhtData>&& values){
-
-            if (values.size() == 0) return true;
-
+        dht_node_.get<DhtData>(dht::InfoHash::get(key), [this](vector<DhtData>&& values){
+            if (values.size() == 0)
+                return true;
             async(launch::async, &DiscoveryMessageHandler::PushDhtValuesToDisco, this, values);
-
             return true;
         });
 
@@ -784,21 +786,26 @@ namespace riaps{
             capnp::MallocMessageBuilder dht_message;
             auto msg_dht_update = dht_message.initRoot<riaps::discovery::DhtUpdate>();
             auto msg_group_update = msg_dht_update.initGroupUpdate();
-            msg_group_update.setComponentId(v.component_id);
+            msg_group_update.setSourceComponentId(v.component_id);
             msg_group_update.setAppName(v.app_name);
 
             auto group_id = msg_group_update.initGroupId();
             group_id.setGroupName(v.group_id.group_name);
             group_id.setGroupType(v.group_id.group_type_id);
 
-            auto group_services = msg_group_update.initServices(v.group_services.size());
-            for (int i = 0; i<v.group_services.size(); i++){
-                group_services[i].setAddress(v.group_services[i].address);
-                group_services[i].setMessageType(v.group_services[i].message_type);
+            auto group_service = msg_group_update.initService();
+
+            // Changing the protocol, send just one address
+            if (v.group_services.size()!=1) {
+                logger_->error("GroupDetails contains invalid number of services ({}): {} {}", v.group_services.size(), __FILE__, __LINE__);
             }
-            
-            // Changing the protocoll, send just one address
-            msg_group_update.setMemberAddress(v.group_services[0].address);
+
+            for (int i = 0; i<v.group_services.size(); i++){
+                group_service.setAddress(v.group_services[i].address);
+                group_service.setMessageType(v.group_services[i].message_type);
+            }
+
+
             auto serialized_message = capnp::messageToFlatArray(dht_message);
             zmsg_t *msg = zmsg_new();
             auto bytes = serialized_message.asBytes();
@@ -1044,44 +1051,39 @@ namespace riaps{
         }
     }
 
-    void DiscoveryMessageHandler::HandleDhtGroupUpdate(const riaps::discovery::GroupUpdate::Reader &msgGroupUpdate) {
+    void DiscoveryMessageHandler::HandleDhtGroupUpdate(const riaps::discovery::GroupUpdate::Reader &msg_group_update) {
         // Look for the affected actors
-        string appName = msgGroupUpdate.getAppName().cStr();
-        bool actorFound = false;
+        string app_name = msg_group_update.getAppName().cStr();
+        bool actor_found = false;
 
         set<zsock_t*> sentCache;
 
         for (auto& client : clients_){
-            if (client.second->app_name == appName){
+            if (client.second->app_name == app_name){
                 if (sentCache.find(client.second->socket) != sentCache.end()) continue;
 
-                std::string log;
-                for (int i=0; i<msgGroupUpdate.getServices().size(); i++) {
-
-                    log+=msgGroupUpdate.getServices()[i].getAddress().cStr();
-                    log+="; ";
-                }
-                logger_->debug("UPD: {}", log);
+                //string log;
+                //auto service = msg_group_update.getService();
+                //logger_->info("UPD: {}", service.getAddress().cStr());
 
                 // Store the socket pointer to avoid multiple sending of the same update.
                 sentCache.insert(client.second->socket);
-                actorFound == true;
+                actor_found == true;
 
                 capnp::MallocMessageBuilder builder;
                 auto msgDiscoUpdate = builder.initRoot<riaps::discovery::DiscoUpd>();
-                msgDiscoUpdate.setGroupUpdate(msgGroupUpdate);
+                msgDiscoUpdate.setGroupUpdate(msg_group_update);
 
                 auto serializedMessage = capnp::messageToFlatArray(builder);
 
                 zmsg_t *msg = zmsg_new();
                 zmsg_pushmem(msg, serializedMessage.asBytes().begin(), serializedMessage.asBytes().size());
-
                 zmsg_send(&msg, client.second.get()->socket);
             }
         }
 
         // TODO: No active actor for this app, purge this listener
-        if (!actorFound) {
+        if (!actor_found) {
 
         }
     }

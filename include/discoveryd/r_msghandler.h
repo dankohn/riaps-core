@@ -100,7 +100,7 @@ namespace riaps{
         void HandleDhtUpdate(const riaps::discovery::ProviderListUpdate::Reader&                          msgProviderUpdate,
                           const std::map<std::string, std::vector<std::unique_ptr<ClientDetails>>>& clientSubscriptions);
 
-        void HandleDhtGroupUpdate(const riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
+        void HandleDhtGroupUpdate(const riaps::discovery::GroupUpdate::Reader& msg_group_update);
 
         void PushDhtValuesToDisco(std::vector<DhtData>&& values);
 

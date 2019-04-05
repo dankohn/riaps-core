@@ -288,14 +288,14 @@ namespace riaps {
         bool Disco::JoinGroup(const std::string &app_name,
                               const std::string &component_id,
                               const riaps::groups::GroupId &group_id,
-                              const std::vector<riaps::groups::GroupService> &group_services) {
+                              const riaps::groups::GroupService &group_service) {
 
             capnp::MallocMessageBuilder message;
 
-            auto msgDiscoReq      = message.initRoot<riaps::discovery::DiscoReq>();
-            auto msgGroupJoin     = msgDiscoReq.initGroupJoin();
-            auto msgGroupId       = msgGroupJoin.initGroupId();
-            auto msgGroupServices = msgGroupJoin.initServices(group_services.size());
+            auto msgDiscoReq       = message.initRoot<riaps::discovery::DiscoReq>();
+            auto msgGroupJoin      = msgDiscoReq.initGroupJoin();
+            auto msgGroupId        = msgGroupJoin.initGroupId();
+            auto msg_groupservice  = msgGroupJoin.initService();
 
             msgGroupJoin.setComponentId(component_id);
             msgGroupJoin.setAppName(app_name);
@@ -303,10 +303,14 @@ namespace riaps {
             msgGroupId.setGroupType(group_id.group_type_id);
             msgGroupId.setGroupName(group_id.group_name);
 
-            for (int i = 0; i< group_services.size(); i++){
-                msgGroupServices[i].setAddress(group_services[i].address);
-                msgGroupServices[i].setMessageType(group_services[i].message_type);
-            }
+//            for (int i = 0; i< group_services.size(); i++){
+//                msgGroupServices[i].setAddress(group_services[i].address);
+//                msgGroupServices[i].setMessageType(group_services[i].message_type);
+//            }
+
+            msg_groupservice.setAddress(group_service.address);
+            msg_groupservice.setMessageType(group_service.message_type);
+
 
             auto serializedMessage = capnp::messageToFlatArray(message);
 

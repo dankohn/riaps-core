@@ -93,7 +93,7 @@ namespace riaps{
             internalPubConfig.is_local     = false;
             internalPubConfig.port_name    = INTERNAL_PUB_NAME;
 
-            vector<GroupService> initialized_services;
+            GroupService group_service;
 
             group_pubport_ = std::shared_ptr<ports::GroupPublisherPort>(
                     new ports::GroupPublisherPort(internalPubConfig,
@@ -101,7 +101,7 @@ namespace riaps{
                                                   actor_name_,
                                                   component_id_,
                                                   has_security_));
-            initialized_services.push_back(group_pubport_->GetGroupService());
+            group_service = group_pubport_->GetGroupService();
             group_ports_[group_pubport_->port_socket()] = group_pubport_;
 
             GroupPortSub internalSubConfig;
@@ -118,32 +118,13 @@ namespace riaps{
                             has_security_));
             group_ports_[group_subport_->port_socket()] = group_subport_;
 
-            //zpoller_add(poller, const_cast<zsock_t*>(group_subport_->port_socket()));
-
-            // Initialize the zpoller and add the group sub port
-            //group_poller_ = zpoller_new(const_cast<zsock_t*>(group_subport_->port_socket()), nullptr);
-
-//            // Initialize user defined publishers
-//            for(auto& portDeclaration : group_type_conf_.group_type_ports.pubs){
-//                auto newPubPort = std::shared_ptr<ports::GroupPublisherPort>(new ports::GroupPublisherPort(portDeclaration, parent_component_));
-//                initializedServices.push_back(newPubPort->GetGroupService());
-//                group_ports_[newPubPort->port_socket()]=std::move(newPubPort);
-//
-//            }
-//
-//            // Initialize user defined subscribers
-//            for(auto& portDeclaration : group_type_conf_.group_type_ports.subs){
-//                auto newSubPort = shared_ptr<ports::GroupSubscriberPort>(new ports::GroupSubscriberPort(portDeclaration, parent_component_));
-//                zpoller_add(group_poller_, const_cast<zsock_t*>(newSubPort->port_socket()));
-//                group_ports_[newSubPort->port_socket()] = std::move(newSubPort);
-//
-//            }
+            zpoller_add(poller, const_cast<zsock_t*>(group_subport_->port_socket()));
 
             bool has_joined = Disco::JoinGroup(
                     application_name_,
                     component_id_,
                     group_id_,
-                    initialized_services);
+                    group_service);
 
             // Setup leader election
             if (has_joined && has_leader()) {
@@ -392,7 +373,7 @@ namespace riaps{
         }
 
         void Group::ConnectToNewServices(std::string address) {
-            logger()->debug("{} {}->{}", __func__, actor_name_, address);
+            //logger()->debug("{} {}->{}", __func__, actor_name_, address);
             zsock_send(this->group_zactor_.get(), "ss", CMD_UPDATE_GROUP, address.c_str());
         }
 
@@ -421,13 +402,12 @@ namespace riaps{
 //        }
 
         bool Group::SendPing() {
-            logger_->debug(">>PING>>");
-            ping_timeout_.Reset();
+            //logger_->debug(">>PING>>");
             return SendHeartBeat(dc::HeartBeatType::PING);
         }
 
         bool Group::SendPong() {
-            logger_->debug(">>PONG>>");
+            //logger_->debug(">>PONG>>");
             return SendHeartBeat(dc::HeartBeatType::PONG);
         }
 
@@ -470,7 +450,7 @@ namespace riaps{
 
 
         bool Group::SendHeartBeat(riaps::distrcoord::HeartBeatType type) {
-            logger_->debug("{} from {}", __func__, component_id_);
+            //logger_->debug("{} from {}", __func__, component_id_);
 
             capnp::MallocMessageBuilder builder;
             auto internal = builder.initRoot<riaps::distrcoord::GroupInternals>();
@@ -489,7 +469,7 @@ namespace riaps{
 
         uint32_t Group::DeleteTimeoutNodes() {
             auto rc = known_nodes_.DeleteTimedOut();
-            logger()->debug("Deleted: {}", rc);
+            //logger()->debug("Deleted: {}", rc);
             return rc;
         }
 
@@ -669,7 +649,6 @@ namespace riaps{
 //        }
 
         void Group::FetchNextMessage(zmsg_t* zmsg) {
-            //logger()->debug("{}", __func__);
             if (zmsg == nullptr) return;
 
             zframe_t* first_frame;
@@ -694,17 +673,19 @@ namespace riaps{
                 std::string source_id = groupHeartBeat.getSourceComponentId().cStr();
                 //auto it = known_nodes_.find(groupHeartBeat.getSourceComponentId());
 
+                //logger()->debug("{} saves {}", component_id_, source_id);
+
                 // New node, set the timeout
                 //if (it == known_nodes_.end()) {
                 if (!known_nodes_.contains(source_id)) {
-                    logger()->debug("Heartbeat from new node ", source_id);
+                    //logger()->debug("Heartbeat from new node ", source_id);
                     //known_nodes_[groupHeartBeat.getSourceComponentId().cStr()] =
                     //        Timeout<std::chrono::milliseconds>(timeout_distribution_(random_generator_));
                     Timeout<std::chrono::milliseconds> to(timeout_distribution_(random_generator_));
                     known_nodes_.put(source_id, to);
                 } else {
 
-                    logger()->debug("Heartbeat from old node: {} ", source_id);
+                    //logger()->debug("Heartbeat from old node: {} ", source_id);
                     Timeout<std::chrono::milliseconds> to(timeout_distribution_(random_generator_));
                     known_nodes_.put(source_id, to);
 //                    //it->second.Reset(timeout_distribution_(random_generator_));
@@ -718,11 +699,11 @@ namespace riaps{
                 }
 
                 if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PING) {
-                    logger_->debug("<<PING<<");
+                    //logger_->debug("<<PING<<");
                     SendPong();
                     return;
                 } else if (groupHeartBeat.getHeartBeatType() == riaps::distrcoord::HeartBeatType::PONG) {
-                    logger_->debug("<<PONG<<");
+                    //logger_->debug("<<PONG<<");
                     return;
                 }
             } else if (internal.hasLeaderElection()){
@@ -898,30 +879,22 @@ namespace riaps{
             auto logger       = group->logger();
             auto component_id = group->component_id();
 
-            logger->debug("{}", __func__);
 
             auto poller = zpoller_new(pipe, nullptr);
 
-            //zpoller_add(poller, sub_socket);
             zpoller_set_nonstop(poller, true);
 
             zsock_signal (pipe, 0);
-//            logger->debug("Sending pipe signal");
-//            zsock_send(pipe, "i", 0);
-//            logger->debug("Signal sent");
-
-            logger->debug("{}", "Before Init");
+            zclock_sleep(500);
             if (!group->InitGroup(poller)) {
                 logger->error("Couldn't init group: {}::{}", group_id.group_type_id, group_id.group_name);
                 return;
             }
-            logger->debug("{}", "Group inited");
-
+            zclock_sleep(500);
             auto group_pub  = group->group_pubport();
             auto group_sub  = group->group_subport();
             auto pub_socket = group_pub->port_socket();
             auto sub_socket = const_cast<zsock_t*>(group_sub->port_socket());
-
 
             bool terminated = false;
             while (!terminated) {
@@ -941,13 +914,14 @@ namespace riaps{
                     } else if (streq(command, CMD_UPDATE_GROUP)) {
                         char* address = zmsg_popstr(msg);
                         string zmq_address = fmt::format("tcp://{}", address);
-                        logger->debug("{} connects to: {} own pub: {}", group->actor_name_, zmq_address, group_pub->endpoint());
+                        //logger->debug("{} connects to: {} own pub: {}", group->actor_name_, zmq_address, group_pub->endpoint());
+                        //logger->debug("{}/{} connects to {}", group_pub->endpoint(), group->component_id_, zmq_address);
                         group->group_subport()->ConnectToPublihser(zmq_address);
                         zstr_free(&address);
                     }
 
                 } else if (which == sub_socket){
-                    logger->debug("{}", "sub_socket message");
+                    //logger->debug("{}", "sub_socket message");
                     zmsg_t *msg = zmsg_recv(which);
                     group->FetchNextMessage(msg);
                     zmsg_destroy(&msg);

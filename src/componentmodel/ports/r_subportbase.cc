@@ -15,7 +15,7 @@ namespace riaps {
                            component_name,
                            has_security), RecvPort(this) {
            InitSocket();
-           logger()->set_level(spd::level::debug);
+
         }
 
         void SubscriberPortBase::InitSocket() {
@@ -29,6 +29,7 @@ namespace riaps {
          * @return True if the connection successful. False otherwise.
          */
         bool SubscriberPortBase::ConnectToPublihser(const string &endpoint) {
+            //logger()->set_level(spd::level::debug);
             if (!GetConfig()->is_local && has_security()) {
                 if (port_certificate_ != nullptr) {
                     zcert_apply(port_certificate_.get(), port_socket_);
