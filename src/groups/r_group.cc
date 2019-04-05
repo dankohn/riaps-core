@@ -885,12 +885,10 @@ namespace riaps{
             zpoller_set_nonstop(poller, true);
 
             zsock_signal (pipe, 0);
-            zclock_sleep(500);
             if (!group->InitGroup(poller)) {
                 logger->error("Couldn't init group: {}::{}", group_id.group_type_id, group_id.group_name);
                 return;
             }
-            zclock_sleep(500);
             auto group_pub  = group->group_pubport();
             auto group_sub  = group->group_subport();
             auto pub_socket = group_pub->port_socket();
