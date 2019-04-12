@@ -4,9 +4,8 @@
 #ifndef RIAPS_FW_COMPTWO_H
 #define RIAPS_FW_COMPTWO_H
 
-#include "CompTwoBase.h"
+#include <base/CompTwoBase.h>
 #include "common.h"
-#include "MessageType.capnp.h"
 
 namespace groupmsgtest {
   namespace components {
@@ -14,25 +13,35 @@ namespace groupmsgtest {
     class CompTwo : public CompTwoBase {
 
     public:
-      CompTwo(_component_conf &config, riaps::Actor &actor);
+        CompTwo(const py::object *parent_actor,
+                const py::dict actor_spec, // Actor json config
+                const py::dict type_spec,  // component json config
+                const py::list group_spec,
+                const std::string &name,
+                const std::string &type_name,
+                const py::dict args,
+                const std::string &application_name,
+                const std::string &actor_name);
 
-      virtual void OnClock(riaps::ports::PortBase *port);
-
-      void OnGroupMessage(const riaps::groups::GroupId &groupId,
-                          capnp::FlatArrayMessageReader &capnpreader,
-                          riaps::ports::PortBase *port);
-
-      virtual ~CompTwo();
+        virtual void OnClock();
+        virtual ~CompTwo() = default;
 
     private:
-      bool m_joinedToA;
-      bool m_joinedToB;
+        bool m_joinedToA;
+        bool m_joinedToB;
     };
   } // namespace components
 } // namespace groupmsgtest
 
-extern "C" riaps::ComponentBase *create_component(_component_conf &,
-                                                  riaps::Actor &actor);
-extern "C" void destroy_component(riaps::ComponentBase *);
+std::unique_ptr<groupmsgtest::components::CompTwo>
+create_component_py(const py::object *parent_actor,
+                    const py::dict actor_spec,
+                    const py::dict type_spec,
+                    const py::list group_spec,
+                    const std::string &name,
+                    const std::string &type_name,
+                    const py::dict args,
+                    const std::string &application_name,
+                    const std::string &actor_name);
 
 #endif // RIAPS_FW_COMPTWO_H

@@ -19,6 +19,8 @@ CAPNP_DECLARE_SCHEMA(b350bf06f720699e);
 }  // namespace schemas
 }  // namespace capnp
 
+namespace groupmsgtest {
+namespace messages {
 
 struct MessageType {
   MessageType() = delete;
@@ -154,5 +156,7 @@ inline ::capnp::Orphan< ::capnp::Text> MessageType::Builder::disownMsg() {
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
 
+}  // namespace
+}  // namespace
 
 #endif  // CAPNP_INCLUDED_a15e3a45b1cda517_

@@ -32,6 +32,7 @@ namespace groupmsgtest {
 
       virtual void OnClock() = 0;
       virtual timespec RecvClock() final;
+      virtual void SendGroupMessage(riaps::groups::GroupId& group_id, MessageBuilder<messages::MessageType>& message) final;
       virtual ~CompOneBase() = default;
 
     protected:

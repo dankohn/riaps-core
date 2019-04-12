@@ -33,6 +33,13 @@ namespace groupmsgtest {
            return port->Recv();
        }
 
+       void CompOneBase::SendGroupMessage(
+               riaps::groups::GroupId& group_id,
+               MessageBuilder<groupmsgtest::messages::MessageType> &message) {
+          capnp::MallocMessageBuilder& builder = message.capnp_builder();
+          PassGroupMessage(group_id, builder);
+      }
+
        void CompOneBase::DispatchMessage(riaps::ports::PortBase *port) {
            auto port_name = port->port_name();
            if (port_name == PORT_TIMER_CLOCK) {

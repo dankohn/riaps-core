@@ -27,8 +27,8 @@ app Groupmsgtest{
 	actor ActOne {
         {
             c1:CompOne();
-            c2:CompTwo();
-            c3:CompThree();
+            //c2:CompTwo();
+            //c3:CompThree();
         }
     }
 }

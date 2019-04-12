@@ -54,6 +54,8 @@ const ::capnp::_::RawSchema s_b350bf06f720699e = {
 
 // =======================================================================================
 
+namespace groupmsgtest {
+namespace messages {
 
 // MessageType
 constexpr uint16_t MessageType::_capnpPrivate::dataWordSize;
@@ -64,4 +66,6 @@ constexpr ::capnp::_::RawSchema const* MessageType::_capnpPrivate::schema;
 #endif  // !CAPNP_LITE
 
 
+}  // namespace
+}  // namespace
 

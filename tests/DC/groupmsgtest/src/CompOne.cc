@@ -19,7 +19,7 @@ namespace groupmsgtest {
       }
       
       void CompOne::OnClock() {
-
+          auto now = RecvClock();
           auto logger = component_logger();
           if (!m_joinedToA){
               logger->info("Component joins to {}:{}", groupIdA.group_type_id, groupIdA.group_name);
@@ -29,12 +29,11 @@ namespace groupmsgtest {
               else
                   logger->error("Couldn't join to group {}:{}", groupIdA.group_type_id, groupIdA.group_name);
          } else {
-             MessageBuilder<MessageType> builder;
+             MessageBuilder<messages::MessageType> builder;
              auto msg_content = fmt::format("{}", component_name());
              builder->setMsg(msg_content);
 
-//             if (SendGroupMessage(groupIdA, builder))
-//                logger->error("{} couldn't send groupmessage", component_name());
+             SendGroupMessage(groupIdA, builder);
          }
       }
     
