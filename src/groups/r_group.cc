@@ -37,7 +37,7 @@ namespace riaps{
 
         std::string Group::leader_id() const {
             if (group_type_conf_.has_leader && group_leader_ != nullptr){
-                return group_leader_->GetLeaderId();
+                return group_leader_->leader_id();
             }
             return "";
         }

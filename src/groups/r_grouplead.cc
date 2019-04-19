@@ -33,8 +33,14 @@ GroupLead::GroupLead(Group* group)
     assert(_logger!=nullptr);
 }
 
-std::string GroupLead::GetLeaderId() {
-    return m_leaderId;
+std::string GroupLead::leader_id() {
+    std::lock_guard<std::mutex> lock(mtx_leader_id_);
+    return leader_id_;
+}
+
+void GroupLead::leader_id(const std::string &leader_id) {
+    std::lock_guard<std::mutex> lock(mtx_leader_id_);
+    leader_id_ = leader_id;
 }
 
 void GroupLead::Update() {
@@ -111,7 +117,7 @@ void GroupLead::Update() {
     else if (m_currentState == GroupLead::LEADER && m_appEntryTimeout.IsTimeout()) {
         SendAppendEntry();
         m_appEntryTimeout.Reset();
-        m_leaderId = GetComponentId();
+        leader_id(GetComponentId());
     }
     /**
      * If no incoming message for the leader and no timeout for sending heartbeat, then maintain the things.
@@ -283,7 +289,7 @@ void GroupLead::SendRequestForVote() {
 
 void GroupLead::OnActionProposeFromClient(riaps::distrcoord::Consensus::ProposeToLeader::Reader &headerMessage,
                                           riaps::distrcoord::Consensus::TimeSyncCoordA::Reader  &tscaMessage) {
-    if (GetLeaderId() != GetComponentId()) {
+    if (leader_id() != GetComponentId()) {
         //m_logger->debug("OnProposeFromClient() returns, leader_id() != GetComponentId()");
         return;
     }
@@ -315,7 +321,7 @@ void GroupLead::OnActionProposeFromClient(riaps::distrcoord::Consensus::ProposeT
     msgConsensus.setSourceComponentId(GetComponentId());
     msgConsensus.setVoteType(riaps::distrcoord::Consensus::VoteType::ACTION);
     msgPropose.setProposeId(proposeId);
-    msgPropose.setLeaderId(GetLeaderId());
+    msgPropose.setLeaderId(leader_id());
     auto msgTsynca = msgConsensus.initTsyncCoordA();
     msgTsynca.setActionId(actionId);
     auto msgTime = msgTsynca.initTime();
@@ -331,7 +337,7 @@ void GroupLead::OnActionProposeFromClient(riaps::distrcoord::Consensus::ProposeT
 
 
     if (m_group->SendMessage(&msg))
-        _logger->debug("GroupLead::OnActionProposeFromClient() - Message sent, proposeId: {} leader_id: {} sourceId: {} actionId: {}", proposeId, m_leaderId, GetComponentId(), actionId);
+        _logger->debug("GroupLead::OnActionProposeFromClient() - Message sent, proposeId: {} leader_id: {} sourceId: {} actionId: {}", proposeId, leader_id(), GetComponentId(), actionId);
     else
         _logger->error("OnActionProposeFromClient() failed to send");
 }
@@ -340,7 +346,7 @@ void GroupLead::OnProposeFromClient(riaps::distrcoord::Consensus::ProposeToLeade
                                   zframe_t** messageFrame) {
 
     //m_logger->debug("OnProposeFromClient()");
-    if (GetLeaderId() != GetComponentId()) {
+    if (leader_id() != GetComponentId()) {
         //m_logger->debug("OnProposeFromClient() returns, leader_id() != GetComponentId()");
         return;
     }
@@ -362,7 +368,7 @@ void GroupLead::OnProposeFromClient(riaps::distrcoord::Consensus::ProposeToLeade
     msgConsensus.setSourceComponentId(GetComponentId());
     msgConsensus.setVoteType(riaps::distrcoord::Consensus::VoteType::VALUE);
     msgPropose.setProposeId(proposeId);
-    msgPropose.setLeaderId(GetLeaderId());
+    msgPropose.setLeaderId(leader_id());
 
     zmsg_t* msg = zmsg_new();
     zframe_t* header;
@@ -370,7 +376,7 @@ void GroupLead::OnProposeFromClient(riaps::distrcoord::Consensus::ProposeToLeade
     zmsg_add(msg, header);
     zmsg_add(msg, *messageFrame);
     if (m_group->SendMessage(&msg))
-        _logger->debug("GroupLead::OnProposeFromClient() - Message sent, proposeId: {} leader_id: {} sourceId: {}", proposeId, m_leaderId, GetComponentId());
+        _logger->debug("GroupLead::OnProposeFromClient() - Message sent, proposeId: {} leader_id: {} sourceId: {}", proposeId, leader_id(), GetComponentId());
     else
         _logger->error("OnProposeFromClient() failed to send");
     *messageFrame = nullptr;
@@ -484,11 +490,11 @@ void GroupLead::SendVote(const std::string& voteFor) {
     m_group->SendMessage(voteBuilder);
 }
 
-void GroupLead::ChangeLeader(const std::string &newLeader) {
-    if (m_leaderId!=newLeader){
-        m_leaderId = newLeader;
+void GroupLead::ChangeLeader(const std::string &new_leader) {
+    if (leader_id()!=new_leader){
+        leader_id(new_leader);
         if (m_onLeaderChanged){
-            m_onLeaderChanged(newLeader);
+            m_onLeaderChanged(new_leader);
         }
     }
 }

@@ -59,7 +59,7 @@ namespace riaps{
             void OnVote(riaps::distrcoord::Consensus::Vote::Reader& message,
                         const std::string& sourceComponentId);
 
-            std::string GetLeaderId();
+            std::string leader_id();
 
             /**
              * Incoming message arrived, lets update the state
@@ -119,9 +119,11 @@ namespace riaps{
             std::shared_ptr<spd::logger> _logger;
             std::unordered_map<std::string, Timeout<std::chrono::milliseconds>>* m_knownNodes;
 
-            std::string m_leaderId;
+            std::string leader_id_;
+            std::mutex mtx_leader_id_;
+            void leader_id(const std::string& leader_id);
 
-            void ChangeLeader(const std::string& newLeader);
+            void ChangeLeader(const std::string& new_leader);
             std::function<void(const std::string&)> m_onLeaderChanged;
 
 
