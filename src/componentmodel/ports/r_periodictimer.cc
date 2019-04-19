@@ -121,6 +121,7 @@ namespace riaps {
 
         void PeriodicTimer::Init() {
             port_socket_ = zsock_new_pull(TimerChannel().c_str());
+            //logger()->info("Timer pull socket (channel: {}) is null? {}", TimerChannel(), port_socket_ == nullptr);
         }
 
         timespec PeriodicTimer::Recv() {
@@ -142,7 +143,7 @@ namespace riaps {
         }
 
         string PeriodicTimer::TimerChannel() {
-            return fmt::format("inproc://timer_{}", port_name());
+            return fmt::format("inproc://timer_{}_{}", component_name(), port_name());
         }
 
         ulong PeriodicTimer::interval() {

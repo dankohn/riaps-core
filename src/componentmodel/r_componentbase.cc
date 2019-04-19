@@ -69,15 +69,19 @@ namespace riaps{
 
                 // Add and start timers
                 for (auto& timconf : comp_conf.component_ports.tims) {
-                    compbase_logger->debug("Register timer: {}", timconf.port_name);
-                    auto newPort = comp->InitTimerPort(timconf);
-                    auto zmq_socket = newPort->port_socket();
-                    portSockets[zmq_socket] = newPort;
+                    comp->riaps_logger_->debug("{} {}", __FILE__, __LINE__);
+                    auto new_port = comp->InitTimerPort(timconf);
+                    comp->riaps_logger_->debug("{} {}", __FILE__, __LINE__);
+                    auto zmq_socket = new_port->port_socket();
+                    comp->riaps_logger_->debug("{} {}", __FILE__, __LINE__);
+                    portSockets[zmq_socket] = new_port;
+                    comp->riaps_logger_->debug("{} {}", __FILE__, __LINE__);
                     zpoller_add(poller, (void*)zmq_socket);
+                    comp->riaps_logger_->debug("{} {}", __FILE__, __LINE__);
 
                     // Start only if the timer is periodic, sporadic timers must be started explicitly
-                    if (!const_cast<riaps::ports::PeriodicTimer*>(newPort)->has_delay())
-                        const_cast<riaps::ports::PeriodicTimer*>(newPort)->Start();
+                    if (!const_cast<riaps::ports::PeriodicTimer*>(new_port)->has_delay())
+                        const_cast<riaps::ports::PeriodicTimer*>(new_port)->Start();
                 }
 
                 // Add and start publishers
@@ -721,21 +725,22 @@ namespace riaps{
         return query_port->SendQuery(message, requestId);
     }
 
-    void ComponentBase::SendGroupMessage(const riaps::groups::GroupId &groupId,
-                                         capnp::MallocMessageBuilder &message,
-                                         const std::string& portName) {
+//    void ComponentBase::SendGroupMessage(riaps::groups::GroupId& groupId,
+//                                         capnp::MallocMessageBuilder& message) {
+//        // Search the group
+//        if (groups_.find(groupId)==groups_.end()) return;
+//
+//        auto group = groups_[groupId].get();
+//        send_group_message(group, message);
+//    }
+
+    void ComponentBase::PassGroupMessage(riaps::groups::GroupId &groupId, capnp::MallocMessageBuilder &user_message) {
+        component_logger()->debug("{}", __func__);
         // Search the group
         if (groups_.find(groupId)==groups_.end()) return;
 
         auto group = groups_[groupId].get();
-        send_group_message(group, message);
-    }
-
-    void ComponentBase::SendGroupMessage(const riaps::groups::GroupId&& groupId,
-                                         capnp::MallocMessageBuilder &message,
-                                         const std::string& portName) {
-        return SendGroupMessage(groupId, message, portName);
-
+        group->PassGroupMessage(user_message);
     }
 
     bool ComponentBase::SendMessageToLeader(const riaps::groups::GroupId &groupId,

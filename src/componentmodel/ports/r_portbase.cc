@@ -19,7 +19,8 @@ namespace riaps {
                            const std::string& actor_name,
                            const std::string& component_name,
                            bool has_security)
-                           : has_security_(has_security){
+                           : has_security_(has_security),
+                             component_name_(component_name){
 
             port_type_        = port_type;
             config_           = config;

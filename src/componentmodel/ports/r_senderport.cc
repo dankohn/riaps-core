@@ -18,7 +18,7 @@ namespace riaps{
 
         PortError SenderPort::Send(zmsg_t **message) const {
             if (port_->config()->is_timed){
-                timespec t;
+                timespec t{0, 0};
                 clock_gettime(CLOCK_REALTIME, &t);
                 double tdouble = (float)t.tv_sec + (((float)t.tv_nsec)/1000000000.0);
                 byte* buffer = new byte[sizeof(tdouble)];
