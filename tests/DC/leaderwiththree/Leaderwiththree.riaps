@@ -1,24 +1,16 @@
-struct MessageType {
-	msg: String;
-}
-
-message GroupMessage:MessageType;
-
-app Groupmsgtest{
-	group groupA{	
-		uses leader
+app Leaderwiththree {
+    message MessageType;
+	
+	component CompOne in cpp {
+		timer clock 3000;
 	}
 	
-	component CompOne {
-		timer clock 3000
-	}
-	
-	component CompTwo {
-		timer clock 3000
+	component CompTwo in cpp {
+		timer clock 3000;
 	} 
 	
-	component CompThree {
-		timer clock 3000
+	component CompThree in cpp {
+		timer clock 3000;
 	}
 	
 	actor ActOne {
