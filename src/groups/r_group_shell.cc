@@ -27,7 +27,7 @@ bool send_group_message(void* group, unsigned char* message, int len) {
     memcpy(copy, message, len);
 
     // CZMQ send() deletes the pointer.
-    group_ptr->SendGroupMessage(copy, len);
+    group_ptr->PassGroupMessage(copy, len);
 }
 
 /**
@@ -67,9 +67,16 @@ riaps::groups::Group* join_group(const char* group_type,
                                  const char* application_name,
                                  const char* actor_name,
                                  const char* component_id,
-                                 bool   has_consensus,
-                                 bool   has_leader,
-                                 bool   has_security) {
+                                 bool        has_consensus,
+                                 bool        has_leader,
+                                 bool        has_security) {
+    if (*group_type       == '\0' ||
+        *group_name       == '\0' ||
+        *application_name == '\0' ||
+        *actor_name       == '\0' ||
+        *component_id     == '\0'
+        ) return nullptr;
+
     riaps::groups::GroupId gid;
     gid.group_type_id = group_type;
     gid.group_name = group_name;
@@ -86,6 +93,7 @@ riaps::groups::Group* join_group(const char* group_type,
                                component_id,
                                has_security);
 
+    new_group->StartGroupActor();
 
     return new_group;
 }

@@ -132,13 +132,12 @@ namespace riaps {
 
 
 
-        void SendGroupMessage(const riaps::groups::GroupId& groupId,
-                              capnp::MallocMessageBuilder& message,
-                              const std::string& portName="");
+        void PassGroupMessage(riaps::groups::GroupId& groupId,
+                              capnp::MallocMessageBuilder& user_message) ;
 
-        void SendGroupMessage(const riaps::groups::GroupId&& groupId,
-                              capnp::MallocMessageBuilder& message,
-                              const std::string& portName="");
+//        void SendGroupMessage(const riaps::groups::GroupId&& groupId,
+//                              capnp::MallocMessageBuilder& message,
+//                              const std::string& portName="");
 
 
 

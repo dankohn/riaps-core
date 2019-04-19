@@ -292,12 +292,25 @@ namespace riaps{
             return SendMessage(&zmsg);
         }
 
+        void Group::PassGroupMessage(unsigned char *user_message, int len) {
+            logger()->debug("{}", __func__);
+            zsock_send(group_zactor_.get(), "sb", CMD_SEND_GROUP_MESSAGE, user_message, len);
+        }
+
+        void Group::PassGroupMessage(capnp::MallocMessageBuilder &user_message) {
+            logger()->debug("{}", __func__);
+            auto serialized_message = capnp::messageToFlatArray(user_message);
+            auto bytes = serialized_message.asBytes();
+            PassGroupMessage(bytes.begin(), bytes.size());
+        }
+
         bool Group::SendGroupMessage(unsigned char *buffer, int len) {
+            logger()->debug("{}", __func__);
             capnp::MallocMessageBuilder builder;
             riaps::distrcoord::GroupInternals::Builder int_message = builder.initRoot<riaps::distrcoord::GroupInternals>();
             riaps::distrcoord::GroupMessage::Builder grp_message = int_message.initGroupMessage();
             grp_message.setSourceComponentId(component_id_);
-            capnp::Data::Builder capnp_buffer(buffer, len);
+            capnp::Data::Reader capnp_buffer(buffer, len);
             grp_message.setMessage(capnp_buffer);
             return SendMessage(builder);
         }
@@ -307,6 +320,26 @@ namespace riaps{
             zmsg<<builder;
             return SendMessage(&zmsg);
         }
+
+//        bool Group::outbox_empty() {
+//            lock_guard<mutex> lock(outbox_mtx_);
+//            return outbox_.empty();
+//        }
+//
+//        std::unique_ptr<zmsg_t, void(*)(zmsg_t*)> Group::OutboxNext() {
+//            lock_guard<mutex> lock(outbox_mtx_);
+//            auto top = move(outbox_.front());
+//            outbox_.pop();
+//            return top;
+//        }
+//
+//        void Group::OutboxPush(zmsg_t *msg) {
+//            lock_guard<mutex> lock(outbox_mtx_);
+//            unique_ptr<zmsg_t, void(*)(zmsg_t*)> umsg(msg, [](zmsg_t* m){
+//                zmsg_destroy(&m);
+//            });
+//            outbox_.push(move(umsg));
+//        }
 
 //        bool Group::SendMessage(capnp::MallocMessageBuilder& message, const std::string& portName){
 //
@@ -661,7 +694,6 @@ namespace riaps{
 
             riaps::distrcoord::GroupInternals::Reader internal = frmReader.getRoot<riaps::distrcoord::GroupInternals>();
             if (internal.hasGroupMessage()) {
-
                 auto grp_msg = internal.getGroupMessage();
                 auto data = grp_msg.getMessage();
                 ForwardOnGroupMessage(data);
@@ -835,7 +867,7 @@ namespace riaps{
 
         void Group::ForwardOnGroupMessage(capnp::Data::Reader &data) {
             //zsock_send(notif_socket_.get(), "sb", ONGROUP_MESSAGE, data.begin(), data.size());
-            logger()->debug("{}", __func__);
+            logger()->debug("{}[{}::{}] {}", component_id_, group_id_.group_type_id, group_id_.group_name, __func__);
         }
 
 
@@ -916,6 +948,18 @@ namespace riaps{
                         //logger->debug("{}/{} connects to {}", group_pub->endpoint(), group->component_id_, zmq_address);
                         group->group_subport()->ConnectToPublihser(zmq_address);
                         zstr_free(&address);
+                    } else if (streq(command, CMD_SEND_GROUP_MESSAGE)) {
+                        logger->debug("Group actor, snd group message arrived");
+                        zframe_t* zgroup_msg = zmsg_pop(msg);
+                        auto data = zframe_data(zgroup_msg);
+                        auto len  = zframe_size(zgroup_msg);
+                        //zmsg_t* zmsg = zmsg_new();
+                        //zmsg_add(zmsg, zgroup_msg);
+                        //group->group_pubport()->Send(&zmsg);
+                        group->SendGroupMessage(data, len);
+                        logger->debug("{}[{}::{}] GroupMsg sent", component_id, group_id.group_type_id, group_id.group_name);
+                        zframe_destroy(&zgroup_msg);
+                        zmsg_destroy(&msg);
                     }
 
                 } else if (which == sub_socket){

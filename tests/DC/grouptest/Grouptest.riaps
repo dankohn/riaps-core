@@ -2,7 +2,7 @@
 app Grouptest{
 	message MessageType;
 	
-	component GroupComp {
+	component GroupComp in cpp {
 		timer clock 3000;
 	}
 	

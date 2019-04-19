@@ -11,7 +11,6 @@ namespace py = pybind11;
 class PyConfigConverter {
 public:
     static ComponentConf convert(const py::dict& py_comp_config, const py::dict& py_actor, const py::list& py_groups) {
-        auto logger = spd::stdout_color_mt(__func__);
         ComponentConf result;
         result.is_device = false;
         ParseLocals(py_actor);
@@ -93,13 +92,13 @@ private:
         }
     };
 
-    static void parse_tim(const py::dict &ports,
-                                      std::vector<ComponentPortTim>& conf_container) {
+    static void parse_tim(const py::dict &ports, std::vector<ComponentPortTim>& conf_container) {
         for (auto it = ports.begin(); it!=ports.end(); it++){
             ComponentPortTim port;
 
             port.period       = it->second[J_PORT_PERIOD].cast<ulong>();
             port.port_name    = it->first.cast<std::string>();
+
             conf_container.push_back(port);
         }
     }

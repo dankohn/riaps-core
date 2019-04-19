@@ -18,17 +18,18 @@ namespace groupmsgtest {
       }
       
       void CompTwo::OnClock() {
-          auto now = RecvClock();
-         if (!m_joinedToA){
-             component_logger()->info("Component joins to {}:{}", groupIdA.group_type_id, groupIdA.group_name);
-            auto joined = JoinGroup(groupIdA);
-            if (joined){
-                m_joinedToA = true;
-            } else {
-                component_logger()->error("Couldn't join to group {}:{}", groupIdA.group_type_id, groupIdA.group_name);
 
-            }
-         }
+          auto now = RecvClock();
+          component_logger()->info("{}", __func__);
+          if (!m_joinedToA) {
+              component_logger()->info("Component joins to {}:{}", groupIdA.group_type_id, groupIdA.group_name);
+              auto joined = JoinGroup(groupIdA);
+              if (joined){
+                  m_joinedToA = true;
+              } else {
+                  component_logger()->error("Couldn't join to group {}:{}", groupIdA.group_type_id, groupIdA.group_name);
+              }
+          }
 
 //         if (!m_joinedToB){
 //             component_logger()->info("Component joins to {}:{}", groupIdB.group_type_id, groupIdB.groupName);

@@ -116,11 +116,9 @@ namespace riaps {
             //void ConnectToNewServices(riaps::discovery::GroupUpdate::Reader& msgGroupUpdate);
             void ConnectToNewServices(std::string address);
 
-            bool SendGroupMessage(unsigned char* buffer, int len);
 
-
-
-
+            void PassGroupMessage(unsigned char* user_message, int len);
+            void PassGroupMessage(capnp::MallocMessageBuilder& user_message);
 
             //ports::GroupSubscriberPort* FetchNextMessage(std::shared_ptr<capnp::FlatArrayMessageReader>& messageReader);
             void FetchNextMessage(zmsg_t* zmsg);
@@ -164,6 +162,7 @@ namespace riaps {
 
             ~Group();
         private:
+            bool SendGroupMessage(unsigned char* buffer, int len);
 
             void ForwardOnGroupMessage(capnp::Data::Reader& data);
 
@@ -189,6 +188,14 @@ namespace riaps {
             uint32_t DeleteTimeoutNodes();
             bool SendHeartBeat(riaps::distrcoord::HeartBeatType type);
 
+            /**
+             * Messages from another thread. Awaiting to send them on the publish port.
+             */
+//            std::queue<std::unique_ptr<zmsg_t, void(*)(zmsg_t*)>> outbox_;
+//            std::mutex outbox_mtx_;
+//            bool outbox_empty();
+//            std::unique_ptr<zmsg_t, void(*)(zmsg_t*)> OutboxNext();
+//            void OutboxPush(zmsg_t* msg);
 
             const GroupId     group_id_;
             const GroupTypeConf group_type_conf_;

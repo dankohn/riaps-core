@@ -1,33 +1,22 @@
-struct MessageType {
-	msg: String;
-}
-
-message GroupMessage:MessageType;
-
 app Groupmsgtest{
-	group groupA{	
-		uses consensus
-	}
-	group groupB{	
-		uses consensus
-	}
-	
-	component CompOne {
-		timer clock 3000
+	message MessageType;
+
+	component CompOne in cpp {
+		timer clock1 3000;
 	}
 	
-	component CompTwo {
-		timer clock 3000
+	component CompTwo in cpp {
+		timer clock2 3000;
 	} 
 	
-	component CompThree {
-		timer clock 3000
-	}
+	//component CompThree {
+	//	timer clock 3000;
+	//}
 	
 	actor ActOne {
         {
             c1:CompOne();
-            //c2:CompTwo();
+            c2:CompTwo();
             //c3:CompThree();
         }
     }

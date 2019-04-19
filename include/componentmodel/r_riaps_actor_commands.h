@@ -29,6 +29,8 @@
 constexpr auto CMD_UPDATE_PORT  = "portUpdate" ;
 constexpr auto CMD_UPDATE_GROUP = "groupUpdate";
 
+constexpr auto CMD_SEND_GROUP_MESSAGE = "$sEnDgRoUpMeSsAgE";
+
 //#define MSG_SERVICE_LIST_HEADER                  "$SERVICES$"
 
 //#define CMD_DISC_ALL (std::vector<std::string>({CMD_DISC_REGISTER_NODE}))
